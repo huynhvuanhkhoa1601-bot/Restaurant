@@ -17,6 +17,9 @@ import TableReservationModal from './components/TableReservationModal';
 import AuthModal from './components/AuthModal';
 import QuickChatWidget from './components/QuickChatWidget';
 import Toast from './components/Toast';
+import UserProfileModal from './components/UserProfileModal';
+import OrderHistoryModal from './components/OrderHistoryModal';
+import WishlistModal from './components/WishlistModal';
 
 function App() {
   return (
@@ -66,6 +69,9 @@ function App() {
       <AuthModal />
       <QuickChatWidget />
       <Toast />
+      <UserProfileModal />
+      <OrderHistoryModal />
+      <WishlistModal />
 
     </div>
   );

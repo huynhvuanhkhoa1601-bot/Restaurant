@@ -119,6 +119,11 @@ export const CartProvider = ({ children }) => {
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [currentOrder, setCurrentOrder] = useState(null);
 
+  // Modals cho khách hàng: Hồ sơ, Lịch sử giao dịch, Món yêu thích
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isOrderHistoryOpen, setIsOrderHistoryOpen] = useState(false);
+  const [isWishlistOpen, setIsWishlistOpen] = useState(false);
+
   // Toast notification system
   const [toast, setToast] = useState(null);
 
@@ -467,6 +472,18 @@ export const CartProvider = ({ children }) => {
         setDietaryFilter,
         sortBy,
         setSortBy,
+        isProfileOpen,
+        setIsProfileOpen,
+        openProfile: () => setIsProfileOpen(true),
+        closeProfile: () => setIsProfileOpen(false),
+        isOrderHistoryOpen,
+        setIsOrderHistoryOpen,
+        openOrderHistory: () => setIsOrderHistoryOpen(true),
+        closeOrderHistory: () => setIsOrderHistoryOpen(false),
+        isWishlistOpen,
+        setIsWishlistOpen,
+        openWishlist: () => setIsWishlistOpen(true),
+        closeWishlist: () => setIsWishlistOpen(false),
       }}
     >
       {children}
