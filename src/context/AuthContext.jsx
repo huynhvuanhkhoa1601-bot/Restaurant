@@ -16,11 +16,19 @@ const AuthContext = createContext(null);
 const TOKEN_KEY = 'kenrestaurant_token';
 const USER_KEY = 'kenrestaurant_session';
 
+const ADMIN_EMAIL = 'huynhvuanhkhoa1601@gmail.com';
+export const checkIsAdminEmail = (email) => (email || '').toLowerCase().trim() === ADMIN_EMAIL;
+
 export const AuthProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(() => {
     try {
       const saved = localStorage.getItem(USER_KEY) || sessionStorage.getItem(USER_KEY);
-      return saved ? JSON.parse(saved) : null;
+      if (saved) {
+        const u = JSON.parse(saved);
+        if (checkIsAdminEmail(u?.email)) u.role = 'admin';
+        return u;
+      }
+      return null;
     } catch (_) {
       return null;
     }
@@ -28,7 +36,7 @@ export const AuthProvider = ({ children }) => {
 
   // Modal state
   const [isAuthOpen, setIsAuthOpen] = useState(false);
-  const [authMode, setAuthMode] = useState('login'); // 'login' | 'register' | 'confirm' | 'admin'
+  const [authMode, setAuthMode] = useState('login'); // 'login' | 'register' | 'confirm'
 
   // Register multi-step data
   const [pendingUser, setPendingUser] = useState(null);
@@ -48,7 +56,13 @@ export const AuthProvider = ({ children }) => {
     if (token) {
       authAPI.getMe()
         .then(res => {
-          if (res && res.user) setCurrentUser(res.user);
+          if (res && res.user) {
+            const isAdm = checkIsAdminEmail(res.user.email);
+            setCurrentUser({
+              ...res.user,
+              role: isAdm ? 'admin' : (res.user.role || 'client'),
+            });
+          }
         })
         .catch(() => {
           localStorage.removeItem(TOKEN_KEY);
@@ -77,9 +91,10 @@ export const AuthProvider = ({ children }) => {
 
   // ── Register Step 1: Thu thập thông tin ──────────────────────────────────
   const submitRegister = useCallback((formData) => {
+    const isAdm = checkIsAdminEmail(formData.email);
     const draft = {
       ...formData,
-      role: 'client',
+      role: isAdm ? 'admin' : 'client',
       verified: false,
     };
     setPendingUser(draft);
@@ -92,14 +107,23 @@ export const AuthProvider = ({ children }) => {
     if (!pendingUser) return { error: 'Không có dữ liệu đăng ký' };
 
     try {
+      const isAdm = checkIsAdminEmail(pendingUser.email);
+      const assignedRole = isAdm ? 'admin' : 'client';
+      const registerPayload = { ...pendingUser, role: assignedRole };
+
       // 1. Lưu vào backend REST API (SQLite) để lấy JWT token
-      const res = await authAPI.register(pendingUser);
+      const res = await authAPI.register(registerPayload);
       if (res.token) {
         localStorage.setItem(TOKEN_KEY, res.token);
       }
 
-      // 2. Đồng thời lưu thông tin khách hàng lên Supabase
-      const userId = res.user?.id || `user-${Date.now()}`;
+      const userWithRole = {
+        ...(res.user || registerPayload),
+        role: assignedRole,
+      };
+
+      // 2. Đồng thời lưu thông tin người dùng lên Supabase
+      const userId = userWithRole.id || `user-${Date.now()}`;
       const { error: supabaseError } = await supabase
         .from('users')
         .upsert({
@@ -109,7 +133,7 @@ export const AuthProvider = ({ children }) => {
           password_hash: `[hashed_via_api]`,
           phone: pendingUser.phone || '',
           address: pendingUser.address || '',
-          role: 'client',
+          role: assignedRole,
           avatar: null,
           verified: true,
         }, { onConflict: 'email', ignoreDuplicates: false });
@@ -117,13 +141,13 @@ export const AuthProvider = ({ children }) => {
       if (supabaseError) {
         console.warn('⚠️ Lưu Supabase thất bại (dữ liệu đã lưu vào SQLite):', supabaseError.message);
       } else {
-        console.log('✅ Đã lưu thông tin khách hàng lên Supabase thành công!');
+        console.log('✅ Đã lưu thông tin người dùng lên Supabase thành công! (Role:', assignedRole, ')');
       }
 
-      setCurrentUser(res.user);
+      setCurrentUser(userWithRole);
       setIsAuthOpen(false);
       setPendingUser(null);
-      return { ok: true, user: res.user };
+      return { ok: true, user: userWithRole };
     } catch (err) {
       return { error: err.message || 'Lỗi đăng ký tài khoản' };
     }
@@ -137,30 +161,34 @@ export const AuthProvider = ({ children }) => {
         localStorage.setItem(TOKEN_KEY, res.token);
       }
 
+      const isAdm = checkIsAdminEmail(email) || checkIsAdminEmail(res.user?.email);
+      const assignedRole = isAdm ? 'admin' : (res.user?.role || 'client');
+      const userWithRole = res.user ? { ...res.user, role: assignedRole } : null;
+
       // Đồng bộ thông tin user lên Supabase khi đăng nhập thành công
-      if (res.user) {
+      if (userWithRole) {
         try {
           await supabase
             .from('users')
             .upsert({
-              id: res.user.id?.toString() || `user-${Date.now()}`,
-              name: res.user.name || '',
-              email: (res.user.email || email).toLowerCase().trim(),
-              phone: res.user.phone || '',
-              address: res.user.address || '',
-              role: res.user.role || 'client',
-              avatar: res.user.avatar || null,
+              id: userWithRole.id?.toString() || `user-${Date.now()}`,
+              name: userWithRole.name || '',
+              email: (userWithRole.email || email).toLowerCase().trim(),
+              phone: userWithRole.phone || '',
+              address: userWithRole.address || '',
+              role: assignedRole,
+              avatar: userWithRole.avatar || null,
               verified: true,
             }, { onConflict: 'email', ignoreDuplicates: false });
-          console.log('✅ Đồng bộ user lên Supabase khi đăng nhập thành công');
+          console.log('✅ Đồng bộ user lên Supabase khi đăng nhập thành công (Role:', assignedRole, ')');
         } catch (supErr) {
           console.warn('⚠️ Không thể đồng bộ Supabase:', supErr.message);
         }
       }
 
-      setCurrentUser(res.user);
+      setCurrentUser(userWithRole);
       setIsAuthOpen(false);
-      return { ok: true, user: res.user };
+      return { ok: true, user: userWithRole };
     } catch (err) {
       return { error: err.message || 'Email hoặc mật khẩu không chính xác.' };
     }
@@ -178,7 +206,12 @@ export const AuthProvider = ({ children }) => {
     try {
       const res = await authAPI.updateProfile(updates);
       if (res.user) {
-        setCurrentUser(res.user);
+        const isAdm = checkIsAdminEmail(res.user.email);
+        const userWithRole = {
+          ...res.user,
+          role: isAdm ? 'admin' : (res.user.role || 'client'),
+        };
+        setCurrentUser(userWithRole);
 
         // Cập nhật đồng thời trên Supabase
         if (res.user.id) {
@@ -189,6 +222,7 @@ export const AuthProvider = ({ children }) => {
               phone: res.user.phone,
               address: res.user.address,
               avatar: res.user.avatar,
+              role: userWithRole.role,
             })
             .eq('id', res.user.id);
         }
@@ -200,7 +234,7 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   // ── Admin helpers ─────────────────────────────────────────────────────────
-  const isAdmin = currentUser?.role === 'admin';
+  const isAdmin = currentUser?.role === 'admin' || checkIsAdminEmail(currentUser?.email);
   const isLoggedIn = !!currentUser;
 
   return (

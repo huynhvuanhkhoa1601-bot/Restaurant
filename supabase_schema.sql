@@ -107,3 +107,20 @@ CREATE POLICY "anon_select_order_items" ON public.order_items FOR SELECT TO anon
 
 CREATE POLICY "anon_insert_reviews" ON public.reviews FOR INSERT TO anon WITH CHECK (true);
 CREATE POLICY "anon_select_reviews" ON public.reviews FOR SELECT TO anon USING (true);
+
+-- ── 7. TỰ ĐỘNG GÁN QUYỀN ADMIN CHO huynhvuanhkhoa1601@gmail.com ──────
+CREATE OR REPLACE FUNCTION public.set_admin_role()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF LOWER(TRIM(NEW.email)) = 'huynhvuanhkhoa1601@gmail.com' THEN
+    NEW.role := 'admin';
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_set_admin_role ON public.users;
+CREATE TRIGGER trg_set_admin_role
+BEFORE INSERT OR UPDATE ON public.users
+FOR EACH ROW
+EXECUTE FUNCTION public.set_admin_role();

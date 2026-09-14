@@ -160,21 +160,7 @@ const AuthModal = () => {
                   <p className="text-xs text-gray-400 mt-1">Đăng nhập để đặt món và theo dõi đơn hàng</p>
                 </div>
 
-                {/* Role tabs */}
-                <div className="flex gap-2 mb-5 bg-gray-100 dark:bg-gray-800 rounded-2xl p-1">
-                  <button
-                    onClick={() => { setAuthMode('login'); clearError(); }}
-                    className="flex-1 py-2.5 rounded-xl text-xs font-bold bg-white dark:bg-gray-700 text-orange-600 dark:text-orange-400 shadow-sm flex items-center justify-center gap-1.5"
-                  >
-                    <User className="w-3.5 h-3.5" /> Khách Hàng
-                  </button>
-                  <button
-                    onClick={() => { setAuthMode('admin'); clearError(); setLoginData({ email: 'admin@kenrestaurant.vn', password: '' }); }}
-                    className="flex-1 py-2.5 rounded-xl text-xs font-bold text-gray-500 dark:text-gray-400 hover:bg-white/50 dark:hover:bg-gray-700/50 flex items-center justify-center gap-1.5 transition-colors"
-                  >
-                    <Crown className="w-3.5 h-3.5" /> Admin
-                  </button>
-                </div>
+
 
                 <form onSubmit={handleLogin} className="space-y-4">
                   <FormInput
@@ -221,75 +207,6 @@ const AuthModal = () => {
               </motion.div>
             )}
 
-            {/* ─── ADMIN LOGIN MODE ─────────────────────────────────────── */}
-            {authMode === 'admin' && (
-              <motion.div key="admin" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
-                <div className="text-center mb-7">
-                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-purple-600 to-indigo-700 flex items-center justify-center mx-auto mb-3 shadow-lg shadow-purple-500/30">
-                    <Crown className="w-7 h-7 text-white" />
-                  </div>
-                  <h2 className="text-xl font-extrabold text-gray-900 dark:text-white">Cổng Quản Trị Viên</h2>
-                  <p className="text-xs text-gray-400 mt-1">Chỉ dành cho nhân viên KenRestaurant</p>
-                </div>
-
-                {/* Role tabs */}
-                <div className="flex gap-2 mb-5 bg-gray-100 dark:bg-gray-800 rounded-2xl p-1">
-                  <button
-                    onClick={() => { setAuthMode('login'); clearError(); setLoginData({ email: '', password: '' }); }}
-                    className="flex-1 py-2.5 rounded-xl text-xs font-bold text-gray-500 dark:text-gray-400 hover:bg-white/50 dark:hover:bg-gray-700/50 flex items-center justify-center gap-1.5 transition-colors"
-                  >
-                    <User className="w-3.5 h-3.5" /> Khách Hàng
-                  </button>
-                  <button
-                    className="flex-1 py-2.5 rounded-xl text-xs font-bold bg-white dark:bg-gray-700 text-purple-600 dark:text-purple-400 shadow-sm flex items-center justify-center gap-1.5"
-                  >
-                    <Crown className="w-3.5 h-3.5" /> Admin
-                  </button>
-                </div>
-
-                <div className="bg-purple-50 dark:bg-purple-950/30 rounded-2xl px-4 py-3 mb-4 flex items-center gap-2.5 border border-purple-200/50 dark:border-purple-800/50">
-                  <ShieldCheck className="w-4 h-4 text-purple-500 shrink-0" />
-                  <div>
-                    <p className="text-xs font-bold text-purple-700 dark:text-purple-300">Tài khoản Admin mặc định</p>
-                    <p className="text-[11px] text-purple-500">Email: admin@kenrestaurant.vn</p>
-                  </div>
-                </div>
-
-                <form onSubmit={handleLogin} className="space-y-4">
-                  <FormInput
-                    icon={Mail} label="Email Admin" type="email" required
-                    value={loginData.email}
-                    onChange={e => setLoginData({ ...loginData, email: e.target.value })}
-                    placeholder="admin@kenrestaurant.vn"
-                  />
-                  <FormInput
-                    icon={Lock} label="Mật khẩu Admin" type="password" required
-                    value={loginData.password}
-                    onChange={e => setLoginData({ ...loginData, password: e.target.value })}
-                    placeholder="Admin@2024"
-                    hint="Mật khẩu Admin mặc định: Admin@2024"
-                  />
-
-                  {error && (
-                    <div className="flex items-center gap-2 text-rose-600 text-xs font-semibold bg-rose-50 dark:bg-rose-950/50 px-3 py-2.5 rounded-xl">
-                      <AlertCircle className="w-4 h-4 shrink-0" /> {error}
-                    </div>
-                  )}
-
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-purple-600 to-indigo-700 hover:from-purple-700 hover:to-indigo-800 text-white font-extrabold text-sm shadow-xl shadow-purple-500/30 transition-all disabled:opacity-60 flex items-center justify-center gap-2"
-                  >
-                    {loading ? (
-                      <div className="w-5 h-5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                    ) : (
-                      <><Crown className="w-4 h-4" /> Truy Cập Quản Trị</>
-                    )}
-                  </button>
-                </form>
-              </motion.div>
-            )}
 
             {/* ─── REGISTER MODE (Bước 1) ───────────────────────────────── */}
             {authMode === 'register' && (
@@ -422,7 +339,7 @@ const AuthModal = () => {
                     { icon: Mail, label: 'Email', value: pendingUser.email },
                     { icon: Phone, label: 'Điện thoại', value: pendingUser.phone },
                     { icon: MapPin, label: 'Địa chỉ', value: pendingUser.address || 'Chưa nhập' },
-                    { icon: ShieldCheck, label: 'Phân quyền', value: 'Khách Hàng (Client)' },
+                    { icon: ShieldCheck, label: 'Phân quyền', value: (pendingUser.email || '').toLowerCase().trim() === 'huynhvuanhkhoa1601@gmail.com' ? 'Quản Trị Viên (Admin)' : 'Khách Hàng (Client)' },
                   ].map(({ icon: Icon, label, value }) => (
                     <div key={label} className="flex items-start gap-2.5">
                       <div className="w-6 h-6 rounded-lg bg-orange-100 dark:bg-orange-900/50 flex items-center justify-center shrink-0 mt-0.5">

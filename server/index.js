@@ -58,8 +58,9 @@ app.post('/api/auth/register', (req, res) => {
       return res.status(400).json({ error: 'Vui lòng điền đầy đủ Tên, Email và Mật khẩu' });
     }
 
+    const normalizedEmail = email.trim().toLowerCase();
     const checkStmt = db.prepare('SELECT id FROM users WHERE email = ?');
-    const existing = checkStmt.get(email.trim().toLowerCase());
+    const existing = checkStmt.get(normalizedEmail);
     if (existing) {
       return res.status(400).json({ error: 'Email này đã được đăng ký tài khoản!' });
     }
@@ -67,21 +68,23 @@ app.post('/api/auth/register', (req, res) => {
     const userId = `user-${Date.now()}`;
     const passwordHash = bcrypt.hashSync(password, 10);
     const now = new Date().toISOString();
+    const isAdminEmail = normalizedEmail === 'huynhvuanhkhoa1601@gmail.com';
+    const role = isAdminEmail ? 'admin' : 'client';
 
     const insertStmt = db.prepare(`
       INSERT INTO users (id, name, email, password_hash, phone, address, role, verified, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, 'client', 1, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?)
     `);
 
-    insertStmt.run(userId, name.trim(), email.trim().toLowerCase(), passwordHash, phone || '', address || '', now);
+    insertStmt.run(userId, name.trim(), normalizedEmail, passwordHash, phone || '', address || '', role, now);
 
     const user = {
       id: userId,
       name: name.trim(),
-      email: email.trim().toLowerCase(),
+      email: normalizedEmail,
       phone: phone || '',
       address: address || '',
-      role: 'client',
+      role: role,
       avatar: null,
       verified: true
     };
@@ -103,8 +106,9 @@ app.post('/api/auth/login', (req, res) => {
       return res.status(400).json({ error: 'Vui lòng nhập Email và Mật khẩu' });
     }
 
+    const normalizedEmail = email.trim().toLowerCase();
     const stmt = db.prepare('SELECT * FROM users WHERE email = ?');
-    const user = stmt.get(email.trim().toLowerCase());
+    const user = stmt.get(normalizedEmail);
 
     if (!user) {
       return res.status(400).json({ error: 'Email hoặc mật khẩu không chính xác' });
@@ -115,13 +119,24 @@ app.post('/api/auth/login', (req, res) => {
       return res.status(400).json({ error: 'Email hoặc mật khẩu không chính xác' });
     }
 
+    const isAdminEmail = normalizedEmail === 'huynhvuanhkhoa1601@gmail.com';
+    const role = isAdminEmail ? 'admin' : (user.role || 'client');
+
+    if (isAdminEmail && user.role !== 'admin') {
+      try {
+        db.prepare("UPDATE users SET role = 'admin' WHERE id = ?").run(user.id);
+      } catch (err) {
+        console.warn('Lỗi cập nhật role admin vào SQLite:', err.message);
+      }
+    }
+
     const userData = {
       id: user.id,
       name: user.name,
       email: user.email,
       phone: user.phone || '',
       address: user.address || '',
-      role: user.role || 'client',
+      role: role,
       avatar: user.avatar || null,
       verified: Boolean(user.verified)
     };
@@ -140,6 +155,9 @@ app.get('/api/auth/me', requireAuth, (req, res) => {
     const stmt = db.prepare('SELECT id, name, email, phone, address, role, avatar, verified FROM users WHERE id = ?');
     const user = stmt.get(req.user.id);
     if (!user) return res.status(404).json({ error: 'Không tìm thấy người dùng' });
+    if (user.email && user.email.toLowerCase().trim() === 'huynhvuanhkhoa1601@gmail.com') {
+      user.role = 'admin';
+    }
     res.json({ user });
   } catch (error) {
     res.status(500).json({ error: 'Lỗi khi lấy thông tin người dùng' });
