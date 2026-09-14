@@ -17,13 +17,53 @@ import {
   Flame,
   Crown,
   LogOut,
-  LogIn
+  LogIn,
+  Plus,
+  ArrowRight,
+  TrendingUp
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { foods, formatCurrency } from '../data/foods';
 import { siteConfig } from '../data/siteConfig';
+
+// Gợi ý tìm kiếm phổ biến
+const POPULAR_SEARCHES = [
+  { label: 'Pizza Hải Sản', icon: '🍕' },
+  { label: 'Sushi Thập Cẩm', icon: '🍣' },
+  { label: 'Phở Bò Wagyu', icon: '🍜' },
+  { label: 'Burger Bò', icon: '🍔' },
+  { label: 'Bít Tết Thăn', icon: '🥩' },
+  { label: 'Tráng Miệng', icon: '🍰' },
+];
+
+const CATEGORY_MAP = {
+  burger: '🍔 Burger',
+  pizza: '🍕 Pizza',
+  sushi: '🍣 Sushi',
+  asian: '🍜 Món Á',
+  steak: '🥩 Bít Tết',
+  healthy: '🥗 Healthy',
+  dessert: '🍰 Tráng Miệng'
+};
+
+// Hàm làm nổi bật từ khóa tìm kiếm
+const highlightMatch = (text, query) => {
+  if (!query || !query.trim()) return text;
+  const cleanQuery = query.trim();
+  const regex = new RegExp(`(${cleanQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+  const parts = text.split(regex);
+  return parts.map((part, i) => 
+    part.toLowerCase() === cleanQuery.toLowerCase() ? (
+      <span key={i} className="text-orange-600 dark:text-orange-400 font-extrabold bg-orange-100/60 dark:bg-orange-950/60 px-0.5 rounded">
+        {part}
+      </span>
+    ) : (
+      part
+    )
+  );
+};
 
 const Header = () => {
   const { 
@@ -40,6 +80,7 @@ const Header = () => {
     setSelectedCategory,
     openDetailModal,
     openReservation,
+    addToCart,
   } = useCart();
 
   const { currentUser, isLoggedIn, isAdmin, openLogin, logout } = useAuth();
@@ -48,6 +89,7 @@ const Header = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
   const searchContainerRef = useRef(null);
+  const searchInputRef = useRef(null);
 
   // Detect scroll for dynamic navbar blur & border
   useEffect(() => {
@@ -69,14 +111,35 @@ const Header = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Keyboard shortcut: Ctrl+K / Cmd+K để focus tìm kiếm, Escape để đóng
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+        setSearchFocused(true);
+      }
+      if (e.key === 'Escape') {
+        setSearchFocused(false);
+        searchInputRef.current?.blur();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   // Filtered foods for live search suggestions dropdown
   const searchResults = searchQuery.trim() === '' 
     ? [] 
     : foods.filter(f => 
         f.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         f.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        f.category.toLowerCase().includes(searchQuery.toLowerCase())
-      ).slice(0, 5);
+        (f.category && f.category.toLowerCase().includes(searchQuery.toLowerCase()))
+      ).slice(0, 6);
+
+  // Món ăn nổi bật gợi ý khi chưa gõ từ khóa
+  const topRecommendations = foods.filter(f => f.isBestSeller || f.rating >= 4.9).slice(0, 3);
+
 
   const scrollToSection = (id) => {
     setMobileMenuOpen(false);
@@ -142,110 +205,340 @@ const Header = () => {
             </a>
 
             {/* Desktop Navigation Links */}
-            <nav className="hidden lg:flex items-center gap-7 text-sm font-semibold text-gray-700 dark:text-gray-300">
+            {/* Desktop Navigation Links */}
+            <nav className="hidden lg:flex items-center gap-3.5 xl:gap-6 text-xs xl:text-sm font-semibold text-gray-700 dark:text-gray-300">
               <button 
                 onClick={() => scrollToSection('menu')}
-                className="hover:text-orange-500 dark:hover:text-orange-400 transition-colors flex items-center gap-1.5"
+                className="hover:text-orange-500 dark:hover:text-orange-400 transition-colors flex items-center gap-1 shrink-0"
               >
                 <span>Thực Đơn</span>
                 <Flame className="w-3.5 h-3.5 text-orange-500 animate-bounce-subtle" />
               </button>
               <button 
                 onClick={() => scrollToSection('promotions')}
-                className="hover:text-orange-500 dark:hover:text-orange-400 transition-colors"
+                className="hover:text-orange-500 dark:hover:text-orange-400 transition-colors shrink-0"
               >
                 Khuyến Mãi
               </button>
               <button 
                 onClick={() => scrollToSection('reviews')}
-                className="hover:text-orange-500 dark:hover:text-orange-400 transition-colors"
+                className="hover:text-orange-500 dark:hover:text-orange-400 transition-colors shrink-0"
               >
                 Đánh Giá
               </button>
               <button 
                 onClick={() => scrollToSection('story')}
-                className="hover:text-orange-500 dark:hover:text-orange-400 transition-colors"
+                className="hover:text-orange-500 dark:hover:text-orange-400 transition-colors shrink-0 hidden xl:block"
               >
                 Về Chúng Tôi
               </button>
               <button 
                 onClick={openReservation}
-                className="text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/40 hover:bg-orange-100 dark:hover:bg-orange-900/50 px-3 py-1.5 rounded-xl transition-all border border-orange-200 dark:border-orange-800/40 text-xs font-bold"
+                className="text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/40 hover:bg-orange-100 dark:hover:bg-orange-900/50 px-2.5 py-1.5 xl:px-3 rounded-xl transition-all border border-orange-200 dark:border-orange-800/40 text-xs font-bold shrink-0"
               >
                 🍽️ Đặt Bàn Ngay
               </button>
             </nav>
 
             {/* Search Bar with Live Autocomplete */}
-            <div ref={searchContainerRef} className="relative flex-1 max-w-xs md:max-w-sm hidden sm:block">
-              <div className="relative">
+            <div 
+              ref={searchContainerRef} 
+              className="relative shrink-0 w-44 md:w-56 lg:w-64 xl:w-72 transition-all duration-300 focus-within:w-60 md:focus-within:w-72 lg:focus-within:w-80 xl:focus-within:w-96 hidden sm:block"
+            >
+              <div className="relative group">
                 <input
+                  ref={searchInputRef}
                   type="text"
-                  placeholder="Tìm món ngon, burger, sushi, pizza..."
+                  placeholder="Tìm món ngon, sushi, pizza..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onFocus={() => setSearchFocused(true)}
-                  className="w-full bg-gray-100/90 dark:bg-gray-800/80 text-gray-900 dark:text-gray-100 pl-10 pr-9 py-2 rounded-2xl text-xs sm:text-sm border border-transparent focus:border-orange-500 dark:focus:border-orange-500 focus:bg-white dark:focus:bg-gray-900 focus:ring-2 focus:ring-orange-500/20 outline-none transition-all duration-200"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      scrollToSection('menu');
+                      setSearchFocused(false);
+                    }
+                  }}
+                  className="w-full bg-gray-100/90 dark:bg-gray-800/80 text-gray-900 dark:text-gray-100 pl-9 pr-14 py-2 rounded-2xl text-xs sm:text-sm border border-transparent focus:border-orange-500 dark:focus:border-orange-500 focus:bg-white dark:focus:bg-gray-900 focus:ring-4 focus:ring-orange-500/15 outline-none transition-all duration-200 shadow-inner"
                 />
-                <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                {searchQuery && (
-                  <button 
-                    onClick={() => setSearchQuery('')}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                )}
+                <Search className="w-4 h-4 text-gray-400 group-focus-within:text-orange-500 absolute left-3 top-1/2 -translate-y-1/2 transition-colors" />
+                
+                <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                  {searchQuery ? (
+                    <button 
+                      type="button"
+                      onClick={() => { setSearchQuery(''); searchInputRef.current?.focus(); }}
+                      className="w-5 h-5 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-500 hover:text-gray-800 dark:hover:text-white flex items-center justify-center transition-colors"
+                      title="Xóa tìm kiếm"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  ) : (
+                    <kbd className="hidden lg:inline-flex items-center text-[10px] font-bold text-gray-400 dark:text-gray-500 bg-gray-200/70 dark:bg-gray-700/60 px-1.5 py-0.5 rounded border border-gray-300/60 dark:border-gray-600/60 select-none">
+                      ⌘K
+                    </kbd>
+                  )}
+                </div>
               </div>
 
               {/* Live Search Autocomplete Dropdown */}
               <AnimatePresence>
-                {searchFocused && searchQuery.trim() !== '' && (
+                {searchFocused && (
                   <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 10 }}
-                    className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-800 overflow-hidden z-50 max-h-96 overflow-y-auto"
+                    initial={{ opacity: 0, y: 8, scale: 0.98 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 6, scale: 0.98 }}
+                    transition={{ duration: 0.16, ease: 'easeOut' }}
+                    className="absolute top-full right-0 mt-2.5 w-[390px] sm:w-[450px] md:w-[480px] max-w-[calc(100vw-24px)] bg-white dark:bg-[#0f172a] rounded-3xl shadow-2xl shadow-black/25 border border-gray-100 dark:border-gray-800/90 overflow-hidden z-[100]"
                   >
-                    <div className="p-2">
-                      <div className="text-[11px] font-bold text-gray-400 px-3 py-1.5 uppercase tracking-wider">
-                        Kết quả tìm kiếm ({searchResults.length})
-                      </div>
-                      {searchResults.length > 0 ? (
-                        searchResults.map(food => (
-                          <div
-                            key={food.id}
-                            onClick={() => {
-                              openDetailModal(food);
-                              setSearchFocused(false);
-                            }}
-                            className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-orange-50 dark:hover:bg-gray-800/60 cursor-pointer transition-colors"
-                          >
-                            <img 
-                              src={food.image} 
-                              alt={food.name}
-                              className="w-12 h-12 rounded-xl object-cover" 
-                            />
-                            <div className="flex-1 min-w-0">
-                              <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
-                                {food.name}
-                              </h4>
-                              <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                                <span className="font-bold text-orange-600 dark:text-orange-400">
-                                  {formatCurrency(food.price)}
+                    {/* Trường hợp 1: Đang có từ khóa tìm kiếm */}
+                    {searchQuery.trim() !== '' ? (
+                      <>
+                        {searchResults.length > 0 ? (
+                          <>
+                            {/* Header kết quả */}
+                            <div className="px-4 py-3 bg-gradient-to-r from-orange-50 to-amber-50 dark:from-gray-800/80 dark:to-gray-800/40 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <Sparkles className="w-4 h-4 text-orange-500" />
+                                <span className="text-xs font-bold text-gray-800 dark:text-gray-200">
+                                  Tìm thấy <span className="text-orange-600 dark:text-orange-400 font-black">{searchResults.length} món ăn</span> phù hợp
                                 </span>
-                                <span>•</span>
-                                <span>⭐ {food.rating}</span>
                               </div>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  scrollToSection('menu');
+                                  setSearchFocused(false);
+                                }}
+                                className="text-xs font-extrabold text-orange-600 dark:text-orange-400 hover:text-orange-700 flex items-center gap-1 hover:underline"
+                              >
+                                Xem trên thực đơn <ArrowRight className="w-3 h-3" />
+                              </button>
                             </div>
+
+                            {/* Danh sách món ăn kết quả */}
+                            <div className="p-2 divide-y divide-gray-100 dark:divide-gray-800/60 max-h-[360px] overflow-y-auto custom-scrollbar">
+                              {searchResults.map((food) => (
+                                <div
+                                  key={food.id}
+                                  onClick={() => {
+                                    openDetailModal(food);
+                                    setSearchFocused(false);
+                                  }}
+                                  className="group flex items-center gap-3.5 p-2.5 rounded-2xl hover:bg-orange-50/80 dark:hover:bg-gray-800/70 cursor-pointer transition-all duration-200"
+                                >
+                                  {/* Ảnh món */}
+                                  <div className="relative w-14 h-14 rounded-2xl overflow-hidden shrink-0 bg-gray-100 dark:bg-gray-800 shadow-sm ring-1 ring-black/5 dark:ring-white/10">
+                                    <img 
+                                      src={food.image} 
+                                      alt={food.name}
+                                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" 
+                                    />
+                                    {food.isBestSeller && (
+                                      <span className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-orange-600 to-orange-500 text-white text-[9px] font-black text-center py-0.5">
+                                        HOT
+                                      </span>
+                                    )}
+                                  </div>
+
+                                  {/* Thông tin món */}
+                                  <div className="flex-1 min-w-0">
+                                    <h4 className="text-sm font-bold text-gray-900 dark:text-gray-100 truncate group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors">
+                                      {highlightMatch(food.name, searchQuery)}
+                                    </h4>
+
+                                    <div className="flex items-center gap-2 text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                                      <span className="text-[11px] font-medium bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded-lg text-gray-600 dark:text-gray-300">
+                                        {CATEGORY_MAP[food.category] || food.category}
+                                      </span>
+                                      <span>•</span>
+                                      <span className="text-amber-500 font-bold flex items-center gap-0.5">
+                                        ★ {food.rating}
+                                      </span>
+                                      {food.prepTime && (
+                                        <>
+                                          <span>•</span>
+                                          <span className="text-[11px] text-gray-400">{food.prepTime}</span>
+                                        </>
+                                      )}
+                                    </div>
+
+                                    <div className="flex items-baseline gap-1.5 mt-1">
+                                      <span className="text-sm font-extrabold text-orange-600 dark:text-orange-400">
+                                        {formatCurrency(food.price)}
+                                      </span>
+                                      {food.originalPrice && food.originalPrice > food.price && (
+                                        <span className="text-[11px] text-gray-400 line-through">
+                                          {formatCurrency(food.originalPrice)}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+
+                                  {/* Nút thêm nhanh */}
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      addToCart(food);
+                                    }}
+                                    title="Thêm nhanh vào giỏ hàng"
+                                    className="w-9 h-9 rounded-xl bg-orange-50 dark:bg-orange-950/50 hover:bg-orange-500 dark:hover:bg-orange-500 text-orange-600 hover:text-white dark:text-orange-400 dark:hover:text-white flex items-center justify-center transition-all duration-200 shrink-0 shadow-sm active:scale-95 group/btn"
+                                  >
+                                    <Plus className="w-4 h-4 transition-transform group-hover/btn:rotate-90" />
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+
+                            {/* Footer kết quả */}
+                            <div className="px-4 py-2.5 bg-gray-50 dark:bg-gray-900/90 border-t border-gray-100 dark:border-gray-800 text-[11px] text-gray-400 flex items-center justify-between">
+                              <span>💡 Click vào món để xem chi tiết • <kbd className="font-bold text-gray-600 dark:text-gray-300">+</kbd> thêm giỏ</span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  scrollToSection('menu');
+                                  setSearchFocused(false);
+                                }}
+                                className="text-orange-500 font-bold hover:underline"
+                              >
+                                Xem tất cả ({foods.length})
+                              </button>
+                            </div>
+                          </>
+                        ) : (
+                          /* Không tìm thấy kết quả */
+                          <div className="p-6 text-center">
+                            <div className="w-14 h-14 mx-auto mb-3 rounded-2xl bg-orange-100/60 dark:bg-orange-950/40 text-orange-500 flex items-center justify-center">
+                              <Search className="w-7 h-7" />
+                            </div>
+                            <h4 className="text-sm font-bold text-gray-900 dark:text-white mb-1">
+                              Không tìm thấy món "{searchQuery}"
+                            </h4>
+                            <p className="text-xs text-gray-400 max-w-xs mx-auto mb-4">
+                              Thử tìm theo từ khóa phổ biến bên dưới hoặc xem lại chính tả món ăn.
+                            </p>
+
+                            <div className="flex flex-wrap items-center justify-center gap-1.5 mb-4">
+                              {POPULAR_SEARCHES.map((item) => (
+                                <button
+                                  key={item.label}
+                                  type="button"
+                                  onClick={() => {
+                                    setSearchQuery(item.label);
+                                    searchInputRef.current?.focus();
+                                  }}
+                                  className="text-xs px-3 py-1.5 rounded-xl bg-gray-100 hover:bg-orange-100 dark:bg-gray-800 dark:hover:bg-orange-950/50 text-gray-700 hover:text-orange-600 dark:text-gray-300 dark:hover:text-orange-400 transition-colors font-medium flex items-center gap-1"
+                                >
+                                  <span>{item.icon}</span>
+                                  <span>{item.label}</span>
+                                </button>
+                              ))}
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSearchQuery('');
+                                scrollToSection('menu');
+                                setSearchFocused(false);
+                              }}
+                              className="text-xs font-bold text-orange-600 dark:text-orange-400 hover:underline"
+                            >
+                              ← Xem toàn bộ thực đơn ({foods.length} món)
+                            </button>
                           </div>
-                        ))
-                      ) : (
-                        <div className="text-center py-6 text-sm text-gray-500 dark:text-gray-400">
-                          Không tìm thấy món "{searchQuery}"
+                        )}
+                      </>
+                    ) : (
+                      /* Trường hợp 2: Khi người dùng bấm vào ô tìm kiếm nhưng chưa gõ chữ */
+                      <div className="p-4">
+                        {/* Gợi ý tìm kiếm nhanh */}
+                        <div className="mb-4">
+                          <div className="flex items-center gap-1.5 text-xs font-bold text-gray-500 dark:text-gray-400 mb-2.5">
+                            <TrendingUp className="w-3.5 h-3.5 text-orange-500" />
+                            <span>GỢI Ý TÌM KIẾM PHỔ BIẾN</span>
+                          </div>
+                          <div className="flex flex-wrap gap-1.5">
+                            {POPULAR_SEARCHES.map((item) => (
+                              <button
+                                key={item.label}
+                                type="button"
+                                onClick={() => {
+                                  setSearchQuery(item.label);
+                                  searchInputRef.current?.focus();
+                                }}
+                                className="text-xs px-3 py-1.5 rounded-xl bg-gray-100 hover:bg-orange-100 dark:bg-gray-800 dark:hover:bg-orange-950/50 text-gray-700 hover:text-orange-600 dark:text-gray-300 dark:hover:text-orange-400 transition-colors font-medium flex items-center gap-1.5"
+                              >
+                                <span>{item.icon}</span>
+                                <span>{item.label}</span>
+                              </button>
+                            ))}
+                          </div>
                         </div>
-                      )}
-                    </div>
+
+                        {/* Món ăn bán chạy gợi ý */}
+                        <div>
+                          <div className="flex items-center justify-between text-xs font-bold text-gray-500 dark:text-gray-400 mb-2">
+                            <span className="flex items-center gap-1">
+                              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                              MÓN BÁN CHẠY ĐƯỢC YÊU THÍCH
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                scrollToSection('menu');
+                                setSearchFocused(false);
+                              }}
+                              className="text-[11px] text-orange-600 dark:text-orange-400 hover:underline"
+                            >
+                              Xem tất cả →
+                            </button>
+                          </div>
+
+                          <div className="space-y-1.5">
+                            {topRecommendations.map((food) => (
+                              <div
+                                key={food.id}
+                                onClick={() => {
+                                  openDetailModal(food);
+                                  setSearchFocused(false);
+                                }}
+                                className="group flex items-center gap-3 p-2 rounded-2xl hover:bg-gray-50 dark:hover:bg-gray-800/60 cursor-pointer transition-colors"
+                              >
+                                <img 
+                                  src={food.image} 
+                                  alt={food.name}
+                                  className="w-11 h-11 rounded-xl object-cover shrink-0 ring-1 ring-black/5" 
+                                />
+                                <div className="flex-1 min-w-0">
+                                  <h4 className="text-xs font-bold text-gray-900 dark:text-gray-100 truncate group-hover:text-orange-500 transition-colors">
+                                    {food.name}
+                                  </h4>
+                                  <div className="flex items-center gap-2 text-[11px] text-gray-400 mt-0.5">
+                                    <span className="font-extrabold text-orange-600 dark:text-orange-400">
+                                      {formatCurrency(food.price)}
+                                    </span>
+                                    <span>•</span>
+                                    <span className="text-amber-500 font-bold">★ {food.rating}</span>
+                                  </div>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    addToCart(food);
+                                  }}
+                                  className="w-7 h-7 rounded-lg bg-orange-100 dark:bg-orange-950/60 text-orange-600 hover:bg-orange-500 hover:text-white flex items-center justify-center transition-colors"
+                                >
+                                  <Plus className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </motion.div>
                 )}
               </AnimatePresence>
