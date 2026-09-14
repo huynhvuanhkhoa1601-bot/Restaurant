@@ -11,7 +11,8 @@ import {
   Facebook,
   Instagram,
   Youtube,
-  ShieldCheck
+  ShieldCheck,
+  ExternalLink
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { siteConfig } from '../data/siteConfig';
@@ -153,21 +154,64 @@ const Footer = () => {
             <ul className="space-y-3 text-xs text-gray-400">
               <li className="flex items-start gap-2.5">
                 <MapPin className="w-4 h-4 text-orange-500 shrink-0 mt-0.5" />
-                <span>{siteConfig.contact.address}</span>
+                <a 
+                  href={siteConfig.contact.googleMapsUrl || "https://www.google.com/maps/search/?api=1&query=133/50/4+Cống+Lở,+Phường+15,+Tân+Bình,+Hồ+Chí+Minh"}
+                  target="_blank" 
+                  rel="noreferrer"
+                  className="hover:text-orange-400 transition-colors"
+                  title="Bấm để xem trên Google Maps"
+                >
+                  {siteConfig.contact.address}
+                </a>
               </li>
               <li className="flex items-center gap-2.5">
                 <Phone className="w-4 h-4 text-orange-500 shrink-0" />
-                <span className="font-bold text-white">{siteConfig.contact.hotlineDisplay || siteConfig.contact.hotline}</span>
+                <a 
+                  href={`tel:${siteConfig.contact.hotline}`}
+                  className="font-bold text-white hover:text-orange-400 transition-colors"
+                >
+                  {siteConfig.contact.hotlineDisplay || siteConfig.contact.hotline}
+                </a>
               </li>
               <li className="flex items-center gap-2.5">
                 <Mail className="w-4 h-4 text-orange-500 shrink-0" />
-                <span>{siteConfig.contact.email}</span>
+                <a 
+                  href={`mailto:${siteConfig.contact.email}`}
+                  className="hover:text-orange-400 transition-colors"
+                >
+                  {siteConfig.contact.email}
+                </a>
               </li>
               <li className="flex items-center gap-2.5">
                 <Clock className="w-4 h-4 text-orange-500 shrink-0" />
                 <span>{siteConfig.contact.openingHours}</span>
               </li>
             </ul>
+
+            {/* Google Maps Embed Card */}
+            <div className="mt-3.5 relative rounded-2xl overflow-hidden border border-gray-700/80 shadow-xl group bg-gray-800">
+              <iframe
+                title="Bản đồ vị trí KenRestaurant"
+                src={siteConfig.contact.googleMapsEmbedUrl || "https://maps.google.com/maps?q=133%2F50%2F4%20C%E1%BB%91ng%20L%E1%BB%9F%2C%20Ph%C6%B0%E1%BB%9Dng%2015%2C%20T%C3%A2n%20B%C3%ACnh%2C%20H%E1%BB%93%20Ch%C3%AD%20Minh&t=&z=16&ie=UTF8&iwloc=&output=embed"}
+                width="100%"
+                height="130"
+                style={{ border: 0 }}
+                allowFullScreen=""
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+                className="w-full h-32 rounded-2xl filter contrast-105 group-hover:filter-none transition-all duration-300"
+              />
+              <a
+                href={siteConfig.contact.googleMapsUrl || "https://www.google.com/maps/search/?api=1&query=133/50/4+Cống+Lở,+Phường+15,+Tân+Bình,+Hồ+Chí+Minh"}
+                target="_blank"
+                rel="noreferrer"
+                className="absolute bottom-2 right-2 bg-gray-950/90 hover:bg-orange-600 text-white text-[10px] font-extrabold px-2.5 py-1 rounded-lg backdrop-blur-md border border-gray-700 transition-all flex items-center gap-1 shadow-md hover:scale-105"
+                title="Xem bản đồ lớn và chỉ đường trên Google Maps"
+              >
+                <span>Chỉ đường</span>
+                <ExternalLink className="w-3 h-3" />
+              </a>
+            </div>
           </div>
 
         </div>

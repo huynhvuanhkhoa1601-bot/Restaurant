@@ -21,6 +21,8 @@ export const siteConfig = {
     hotlineDisplay: '0334 756 330',     // Số điện thoại hiển thị đẹp mắt
     email: 'contact@kenrestaurant.vn',  // Email liên hệ
     address: '133/50/4 Cống Lở, P.15, Q. Tân Bình, TP.HCM', // Địa chỉ nhà hàng
+    googleMapsEmbedUrl: 'https://maps.google.com/maps?q=133%2F50%2F4%20C%E1%BB%91ng%20L%E1%BB%9F%2C%20Ph%C6%B0%E1%BB%9Dng%2015%2C%20T%C3%A2n%20B%C3%ACnh%2C%20H%E1%BB%93%20Ch%C3%AD%20Minh&t=&z=16&ie=UTF8&iwloc=&output=embed',
+    googleMapsUrl: 'https://www.google.com/maps/search/?api=1&query=133/50/4+Cống+Lở,+Phường+15,+Tân+Bình,+Hồ+Chí+Minh',
     openingHours: '08:00 - 23:30 mỗi ngày', // Giờ mở cửa
   },
 
