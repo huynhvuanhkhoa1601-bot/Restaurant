@@ -391,6 +391,23 @@ export const CartProvider = ({ children }) => {
       });
     } catch (_) {}
 
+    // Lưu đơn hàng vào lịch sử giao dịch của khách hàng
+    try {
+      const savedOrders = JSON.parse(localStorage.getItem('ken_user_orders') || '[]');
+      savedOrders.unshift({
+        id: orderId,
+        customerName: orderData.name || orderData.fullName || '',
+        customerPhone: orderData.phone || '',
+        customerAddress: orderData.address || '',
+        items: cart,
+        total: cartTotal,
+        status: 'confirmed',
+        createdAt: now,
+        paymentMethod: orderData.paymentMethod || 'cod'
+      });
+      localStorage.setItem('ken_user_orders', JSON.stringify(savedOrders.slice(0, 20)));
+    } catch (_) {}
+
     setCurrentOrder(newOrder);
     clearCart();
     setIsCheckoutOpen(false);

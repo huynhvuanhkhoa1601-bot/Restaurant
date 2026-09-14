@@ -30,54 +30,65 @@ const OrderHistoryModal = () => {
       try {
         let foundOrders = [];
 
-        // 1. Try fetching from Supabase first
-        if (currentUser?.email || currentUser?.phone) {
-          try {
-            const { data, error } = await supabase
-              .from('orders')
-              .select('*, order_items(*)')
-              .or(`customer_phone.eq.${currentUser.phone || 'none'},customer_name.ilike.%${currentUser.name || 'none'}%`)
-              .order('created_at', { ascending: false });
+        // 1. Kiểm tra đơn hàng đã lưu trong localStorage của khách hàng
+        try {
+          const cachedOrders = JSON.parse(localStorage.getItem('ken_user_orders') || '[]');
+          if (Array.isArray(cachedOrders) && cachedOrders.length > 0) {
+            foundOrders = [...cachedOrders];
+          }
+        } catch (_) {}
 
-            if (!error && data && data.length > 0) {
-              foundOrders = data.map(ord => ({
-                id: ord.id,
-                customerName: ord.customer_name,
-                customerPhone: ord.customer_phone,
-                customerAddress: ord.customer_address,
-                items: ord.order_items || [],
-                total: ord.total || 0,
-                status: ord.status || 'confirmed',
-                createdAt: ord.created_at,
-                paymentMethod: ord.payment_method || 'cod'
-              }));
+        // 2. Lấy đơn hàng từ Supabase theo số điện thoại hoặc tên khách hàng
+        if (currentUser?.phone || currentUser?.name) {
+          try {
+            const filters = [];
+            if (currentUser.phone) filters.push(`customer_phone.eq.${currentUser.phone}`);
+            if (currentUser.name) filters.push(`customer_name.ilike.%${currentUser.name}%`);
+
+            if (filters.length > 0) {
+              const { data, error } = await supabase
+                .from('orders')
+                .select('*, order_items(*)')
+                .or(filters.join(','))
+                .order('created_at', { ascending: false });
+
+              if (!error && data && data.length > 0) {
+                const existingIds = new Set(foundOrders.map(o => o.id));
+                data.forEach(ord => {
+                  if (!existingIds.has(ord.id)) {
+                    foundOrders.push({
+                      id: ord.id,
+                      customerName: ord.customer_name,
+                      customerPhone: ord.customer_phone,
+                      customerAddress: ord.customer_address,
+                      items: ord.order_items || [],
+                      total: ord.total || 0,
+                      status: ord.status || 'confirmed',
+                      createdAt: ord.created_at,
+                      paymentMethod: ord.payment_method || 'cod'
+                    });
+                  }
+                });
+              }
             }
           } catch (supErr) {
             console.warn('Supabase order history fetch:', supErr);
           }
         }
 
-        // 2. Fallback to REST API / SQLite
-        if (foundOrders.length === 0) {
-          try {
-            const res = await ordersAPI.getMyOrders();
-            if (res && res.orders) {
-              foundOrders = res.orders;
-            }
-          } catch (apiErr) {
-            console.warn('REST API my orders:', apiErr);
+        // 3. Fallback lấy từ REST API / SQLite
+        try {
+          const res = await ordersAPI.getMyOrders();
+          if (res && res.orders && res.orders.length > 0) {
+            const existingIds = new Set(foundOrders.map(o => o.id));
+            res.orders.forEach(ro => {
+              if (!existingIds.has(ro.id)) {
+                foundOrders.push(ro);
+              }
+            });
           }
-        }
-
-        // 3. Fallback to localStorage saved orders
-        if (foundOrders.length === 0) {
-          const localOrder = localStorage.getItem('last_placed_order');
-          if (localOrder) {
-            try {
-              const parsed = JSON.parse(localOrder);
-              foundOrders = [parsed];
-            } catch (_) {}
-          }
+        } catch (apiErr) {
+          console.warn('REST API my orders:', apiErr);
         }
 
         setOrders(foundOrders);
