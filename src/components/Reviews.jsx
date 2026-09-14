@@ -8,6 +8,7 @@ import { reviews as initialReviews, foods } from '../data/foods';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { reviewsAPI } from '../services/api';
+import { supabase } from '../lib/supabase';
 
 // ─── Star Selector ───────────────────────────────────────────────────────────
 const StarSelector = ({ value, onChange }) => (
@@ -273,6 +274,28 @@ const Reviews = () => {
       likes: 0,
     };
 
+    // 1. Lưu đánh giá lên Supabase
+    try {
+      const { error } = await supabase
+        .from('reviews')
+        .insert({
+          user_name: created.name,
+          user_avatar: created.avatar,
+          rating: created.rating,
+          comment: created.comment,
+          food_name: created.dish,
+        });
+
+      if (error) {
+        console.warn('⚠️ Lưu đánh giá lên Supabase thất bại:', error.message);
+      } else {
+        console.log('✅ Đánh giá đã lưu lên Supabase thành công!');
+      }
+    } catch (supErr) {
+      console.warn('⚠️ Lỗi kết nối Supabase:', supErr.message);
+    }
+
+    // 2. Lưu dự phòng lên backend SQLite
     try {
       await reviewsAPI.create({
         name: created.name,

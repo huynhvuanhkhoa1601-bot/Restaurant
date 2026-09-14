@@ -136,6 +136,28 @@ export const AuthProvider = ({ children }) => {
       if (res.token) {
         localStorage.setItem(TOKEN_KEY, res.token);
       }
+
+      // Đồng bộ thông tin user lên Supabase khi đăng nhập thành công
+      if (res.user) {
+        try {
+          await supabase
+            .from('users')
+            .upsert({
+              id: res.user.id?.toString() || `user-${Date.now()}`,
+              name: res.user.name || '',
+              email: (res.user.email || email).toLowerCase().trim(),
+              phone: res.user.phone || '',
+              address: res.user.address || '',
+              role: res.user.role || 'client',
+              avatar: res.user.avatar || null,
+              verified: true,
+            }, { onConflict: 'email', ignoreDuplicates: false });
+          console.log('✅ Đồng bộ user lên Supabase khi đăng nhập thành công');
+        } catch (supErr) {
+          console.warn('⚠️ Không thể đồng bộ Supabase:', supErr.message);
+        }
+      }
+
       setCurrentUser(res.user);
       setIsAuthOpen(false);
       return { ok: true, user: res.user };

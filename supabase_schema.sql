@@ -1,10 +1,18 @@
 -- ============================================================
 -- 🗄️ SUPABASE SCHEMA - KenRestaurant Database
+-- ⚠️ XÓA BẢNG CŨ VÀ TẠO LẠI TỪ ĐẦU
 -- Chạy toàn bộ script này trong Supabase SQL Editor
 -- ============================================================
 
+-- ── XÓA BẢNG CŨ (nếu có) ───────────────────────────────────
+DROP TABLE IF EXISTS public.order_items CASCADE;
+DROP TABLE IF EXISTS public.orders CASCADE;
+DROP TABLE IF EXISTS public.reservations CASCADE;
+DROP TABLE IF EXISTS public.reviews CASCADE;
+DROP TABLE IF EXISTS public.users CASCADE;
+
 -- ── 1. BẢNG NGƯỜI DÙNG (users) ─────────────────────────────
-CREATE TABLE IF NOT EXISTS public.users (
+CREATE TABLE public.users (
   id           TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
   name         TEXT NOT NULL,
   email        TEXT UNIQUE NOT NULL,
@@ -18,7 +26,7 @@ CREATE TABLE IF NOT EXISTS public.users (
 );
 
 -- ── 2. BẢNG ĐẶT BÀN (reservations) ────────────────────────
-CREATE TABLE IF NOT EXISTS public.reservations (
+CREATE TABLE public.reservations (
   id            BIGSERIAL PRIMARY KEY,
   customer_name TEXT NOT NULL,
   phone         TEXT NOT NULL,
@@ -32,7 +40,7 @@ CREATE TABLE IF NOT EXISTS public.reservations (
 );
 
 -- ── 3. BẢNG ĐƠN HÀNG (orders) ──────────────────────────────
-CREATE TABLE IF NOT EXISTS public.orders (
+CREATE TABLE public.orders (
   id               TEXT PRIMARY KEY,
   customer_name    TEXT,
   customer_phone   TEXT,
@@ -52,7 +60,7 @@ CREATE TABLE IF NOT EXISTS public.orders (
 );
 
 -- ── 4. BẢNG CHI TIẾT ĐƠN HÀNG (order_items) ────────────────
-CREATE TABLE IF NOT EXISTS public.order_items (
+CREATE TABLE public.order_items (
   id               BIGSERIAL PRIMARY KEY,
   order_id         TEXT REFERENCES public.orders(id) ON DELETE CASCADE,
   food_id          TEXT,
@@ -65,7 +73,7 @@ CREATE TABLE IF NOT EXISTS public.order_items (
 );
 
 -- ── 5. BẢNG ĐÁNH GIÁ (reviews) ─────────────────────────────
-CREATE TABLE IF NOT EXISTS public.reviews (
+CREATE TABLE public.reviews (
   id           BIGSERIAL PRIMARY KEY,
   user_name    TEXT NOT NULL,
   user_avatar  TEXT,
@@ -77,41 +85,25 @@ CREATE TABLE IF NOT EXISTS public.reviews (
 );
 
 -- ── 6. CẤU HÌNH Row Level Security (RLS) ────────────────────
--- Bật RLS cho tất cả bảng
 ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.reservations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.order_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.reviews ENABLE ROW LEVEL SECURITY;
 
--- Cho phép Anon key INSERT/SELECT vào tất cả bảng (frontend không auth)
-CREATE POLICY "Allow anon insert users" ON public.users
-  FOR INSERT TO anon WITH CHECK (true);
+-- Cho phép Anon key INSERT/SELECT/UPDATE
+CREATE POLICY "anon_insert_users" ON public.users FOR INSERT TO anon WITH CHECK (true);
+CREATE POLICY "anon_select_users" ON public.users FOR SELECT TO anon USING (true);
+CREATE POLICY "anon_update_users" ON public.users FOR UPDATE TO anon USING (true) WITH CHECK (true);
 
-CREATE POLICY "Allow anon insert reservations" ON public.reservations
-  FOR INSERT TO anon WITH CHECK (true);
+CREATE POLICY "anon_insert_reservations" ON public.reservations FOR INSERT TO anon WITH CHECK (true);
+CREATE POLICY "anon_select_reservations" ON public.reservations FOR SELECT TO anon USING (true);
 
-CREATE POLICY "Allow anon select reservations" ON public.reservations
-  FOR SELECT TO anon USING (true);
+CREATE POLICY "anon_insert_orders" ON public.orders FOR INSERT TO anon WITH CHECK (true);
+CREATE POLICY "anon_select_orders" ON public.orders FOR SELECT TO anon USING (true);
 
-CREATE POLICY "Allow anon insert orders" ON public.orders
-  FOR INSERT TO anon WITH CHECK (true);
+CREATE POLICY "anon_insert_order_items" ON public.order_items FOR INSERT TO anon WITH CHECK (true);
+CREATE POLICY "anon_select_order_items" ON public.order_items FOR SELECT TO anon USING (true);
 
-CREATE POLICY "Allow anon select orders" ON public.orders
-  FOR SELECT TO anon USING (true);
-
-CREATE POLICY "Allow anon insert order_items" ON public.order_items
-  FOR INSERT TO anon WITH CHECK (true);
-
-CREATE POLICY "Allow anon select order_items" ON public.order_items
-  FOR SELECT TO anon USING (true);
-
-CREATE POLICY "Allow anon insert reviews" ON public.reviews
-  FOR INSERT TO anon WITH CHECK (true);
-
-CREATE POLICY "Allow anon select reviews" ON public.reviews
-  FOR SELECT TO anon USING (true);
-
--- Cho phép update users (cho updateProfile)
-CREATE POLICY "Allow anon update users" ON public.users
-  FOR UPDATE TO anon USING (true) WITH CHECK (true);
+CREATE POLICY "anon_insert_reviews" ON public.reviews FOR INSERT TO anon WITH CHECK (true);
+CREATE POLICY "anon_select_reviews" ON public.reviews FOR SELECT TO anon USING (true);
