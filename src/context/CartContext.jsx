@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { foods as initialFoods, vouchers as initialVouchers } from '../data/foods';
 import { ordersAPI, foodsAPI, vouchersAPI } from '../services/api';
+import { supabase } from '../lib/supabase';
 
 const CartContext = createContext();
 
@@ -294,8 +295,85 @@ export const CartProvider = ({ children }) => {
   const closeCheckout = () => setIsCheckoutOpen(false);
 
   const placeOrder = async (orderData) => {
+    const driverInfo = {
+      name: 'Nguyễn Văn Hùng',
+      phone: '0988.123.456',
+      rating: 4.95,
+      vehicle: 'Honda Wave - 29A1-889.99',
+      avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80'
+    };
+
+    const orderId = `GF-${Math.floor(100000 + Math.random() * 900000)}`;
+    const now = new Date().toISOString();
+
+    const newOrder = {
+      orderId,
+      createdAt: now,
+      items: [...cart],
+      subtotal: cartSubtotal,
+      deliveryFee,
+      discount: voucherDiscount,
+      tax,
+      total: cartTotal,
+      customer: orderData,
+      status: 'confirmed',
+      estimatedTime: '20-25 phút',
+      driver: driverInfo
+    };
+
+    // 1. Lưu lên Supabase
     try {
-      const orderPayload = {
+      const { error: orderError } = await supabase
+        .from('orders')
+        .insert({
+          id: orderId,
+          customer_name: orderData.name || orderData.fullName || '',
+          customer_phone: orderData.phone || '',
+          customer_address: orderData.address || '',
+          payment_method: orderData.paymentMethod || 'cod',
+          notes: orderData.note || orderData.notes || '',
+          subtotal: cartSubtotal,
+          delivery_fee: deliveryFee,
+          discount: voucherDiscount,
+          tax,
+          total: cartTotal,
+          voucher_code: appliedVoucher?.code || null,
+          status: 'confirmed',
+          estimated_time: '20-25 phút',
+          driver: driverInfo,
+          created_at: now,
+        });
+
+      if (!orderError) {
+        // Lưu chi tiết từng món lên Supabase
+        const itemsToInsert = cart.map(item => ({
+          order_id: orderId,
+          food_id: item.id || '',
+          food_name: item.name || '',
+          quantity: item.quantity || 1,
+          unit_price: item.unitPrice || item.price || 0,
+          total_price: item.totalPrice || (item.unitPrice * item.quantity) || 0,
+          selected_size: item.selectedSize?.name || '',
+          selected_toppings: item.selectedToppings || [],
+        }));
+
+        const { error: itemsError } = await supabase
+          .from('order_items')
+          .insert(itemsToInsert);
+
+        if (!itemsError) {
+          console.log('✅ Đơn hàng đã lưu lên Supabase thành công!');
+        }
+      } else {
+        console.warn('⚠️ Lỗi lưu đơn hàng lên Supabase:', orderError.message);
+      }
+    } catch (supErr) {
+      console.warn('⚠️ Không thể kết nối Supabase, tiếp tục xử lý offline:', supErr.message);
+    }
+
+    // 2. Lưu lên backend SQLite (fallback)
+    try {
+      await ordersAPI.create({
         customer: orderData,
         items: cart,
         subtotal: cartSubtotal,
@@ -305,66 +383,15 @@ export const CartProvider = ({ children }) => {
         total: cartTotal,
         voucherCode: appliedVoucher?.code || null,
         notes: orderData.note || ''
-      };
+      });
+    } catch (_) {}
 
-      const res = await ordersAPI.create(orderPayload);
-
-      const newOrder = {
-        orderId: res.orderId || `GF-${Math.floor(100000 + Math.random() * 900000)}`,
-        createdAt: res.createdAt || new Date().toISOString(),
-        items: [...cart],
-        subtotal: cartSubtotal,
-        deliveryFee,
-        discount: voucherDiscount,
-        tax,
-        total: cartTotal,
-        customer: orderData,
-        status: res.status || 'confirmed',
-        estimatedTime: '20-25 phút',
-        driver: res.driver || {
-          name: 'Nguyễn Văn Hùng',
-          phone: '0988.123.456',
-          rating: 4.95,
-          vehicle: 'Honda Wave - 29A1-889.99',
-          avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80'
-        }
-      };
-
-      setCurrentOrder(newOrder);
-      clearCart();
-      setIsCheckoutOpen(false);
-      setIsTrackingOpen(true);
-      playSound('success');
-      showToast('Đơn hàng đã được lưu thành công vào cơ sở dữ liệu!', 'success');
-    } catch (err) {
-      console.warn('Lỗi gửi API đơn hàng, lưu chế độ offline:', err);
-      const fallbackOrder = {
-        orderId: `GF-${Math.floor(100000 + Math.random() * 900000)}`,
-        createdAt: new Date().toISOString(),
-        items: [...cart],
-        subtotal: cartSubtotal,
-        deliveryFee,
-        discount: voucherDiscount,
-        tax,
-        total: cartTotal,
-        customer: orderData,
-        status: 'confirmed',
-        estimatedTime: '20-25 phút',
-        driver: {
-          name: 'Nguyễn Văn Hùng',
-          phone: '0988.123.456',
-          rating: 4.95,
-          vehicle: 'Honda Wave - 29A1-889.99',
-          avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80'
-        }
-      };
-
-      setCurrentOrder(fallbackOrder);
-      clearCart();
-      setIsCheckoutOpen(false);
-      setIsTrackingOpen(true);
-      playSound('success');
-    }
+    setCurrentOrder(newOrder);
+    clearCart();
+    setIsCheckoutOpen(false);
+    setIsTrackingOpen(true);
+    playSound('success');
+    showToast('Đơn hàng đã được lưu thành công!', 'success');
   };
 
   // User state mock

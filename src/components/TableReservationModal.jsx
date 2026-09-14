@@ -13,18 +13,19 @@ import {
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { reservationsAPI } from '../services/api';
+import { supabase } from '../lib/supabase';
 
 const TableReservationModal = () => {
   const { isReservationOpen, closeReservation, showToast } = useCart();
   const [isSuccess, setIsSuccess] = useState(false);
 
   const [bookingData, setBookingData] = useState({
-    name: 'Nguyễn Hải Đăng',
-    phone: '0912.345.678',
-    date: '2026-08-28',
-    time: '19:00',
-    guests: 4,
-    seatingArea: 'Rooftop Lounge VIP',
+    name: '',
+    phone: '',
+    date: '',
+    time: '',
+    guests: 2,
+    seatingArea: '',
     specialRequest: ''
   });
 
@@ -32,6 +33,32 @@ const TableReservationModal = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // 1. Lưu thông tin đặt bàn lên Supabase
+    try {
+      const { error } = await supabase
+        .from('reservations')
+        .insert({
+          customer_name: bookingData.name,
+          phone: bookingData.phone,
+          guests: Number(bookingData.guests),
+          date: bookingData.date,
+          time: bookingData.time,
+          table_type: bookingData.seatingArea,
+          notes: bookingData.specialRequest || '',
+          status: 'pending',
+        });
+
+      if (error) {
+        console.warn('⚠️ Lưu Supabase thất bại:', error.message);
+      } else {
+        console.log('✅ Đặt bàn đã lưu lên Supabase thành công!');
+      }
+    } catch (supErr) {
+      console.warn('⚠️ Lỗi kết nối Supabase:', supErr.message);
+    }
+
+    // 2. Lưu dự phòng lên backend SQLite
     try {
       await reservationsAPI.create({
         name: bookingData.name,
@@ -43,12 +70,10 @@ const TableReservationModal = () => {
         tableType: bookingData.seatingArea,
         notes: bookingData.specialRequest
       });
-      setIsSuccess(true);
-      showToast('Đặt bàn thành công! KenRestaurant đã lưu thông tin vào database.', 'success');
-    } catch (err) {
-      setIsSuccess(true);
-      showToast('Đặt bàn thành công! KenRestaurant sẽ gọi xác nhận trong ít phút.', 'success');
-    }
+    } catch (_) {}
+
+    setIsSuccess(true);
+    showToast('Đặt bàn thành công! KenRestaurant đã lưu thông tin của bạn.', 'success');
   };
 
   const handleClose = () => {

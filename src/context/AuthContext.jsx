@@ -1,7 +1,7 @@
 /**
  * =========================================================================
  * 🔐 HỆ THỐNG QUẢN LÝ TÀI KHOẢN (Authentication Context)
- * - Tích hợp Database SQLite & REST API qua authAPI
+ * - Lưu thông tin khách hàng lên Supabase khi đăng ký
  * - Phân quyền: admin | client
  * - Quy trình: Đăng ký → Xác nhận thông tin → Đăng nhập
  * =========================================================================
@@ -9,6 +9,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { authAPI } from '../services/api';
+import { supabase } from '../lib/supabase';
 
 const AuthContext = createContext(null);
 
@@ -32,7 +33,7 @@ export const AuthProvider = ({ children }) => {
   // Register multi-step data
   const [pendingUser, setPendingUser] = useState(null);
 
-  // ── Sync session & verify token with backend ──────────────────────────────
+  // ── Sync session ──────────────────────────────────────────────────────────
   useEffect(() => {
     if (currentUser) {
       localStorage.setItem(USER_KEY, JSON.stringify(currentUser));
@@ -47,12 +48,9 @@ export const AuthProvider = ({ children }) => {
     if (token) {
       authAPI.getMe()
         .then(res => {
-          if (res && res.user) {
-            setCurrentUser(res.user);
-          }
+          if (res && res.user) setCurrentUser(res.user);
         })
         .catch(() => {
-          // Token không hợp lệ hoặc hết hạn
           localStorage.removeItem(TOKEN_KEY);
           sessionStorage.removeItem(TOKEN_KEY);
           setCurrentUser(null);
@@ -85,29 +83,53 @@ export const AuthProvider = ({ children }) => {
       verified: false,
     };
     setPendingUser(draft);
-    setAuthMode('confirm'); // Bước 2: Xác nhận thông tin
+    setAuthMode('confirm');
     return { ok: true };
   }, []);
 
-  // ── Register Step 2: Xác nhận & Lưu vào Database ─────────────────────────
+  // ── Register Step 2: Xác nhận & Lưu lên Supabase ─────────────────────────
   const confirmRegister = useCallback(async () => {
     if (!pendingUser) return { error: 'Không có dữ liệu đăng ký' };
 
     try {
+      // 1. Lưu vào backend REST API (SQLite) để lấy JWT token
       const res = await authAPI.register(pendingUser);
       if (res.token) {
         localStorage.setItem(TOKEN_KEY, res.token);
       }
+
+      // 2. Đồng thời lưu thông tin khách hàng lên Supabase
+      const userId = res.user?.id || `user-${Date.now()}`;
+      const { error: supabaseError } = await supabase
+        .from('users')
+        .upsert({
+          id: userId,
+          name: pendingUser.name || '',
+          email: (pendingUser.email || '').toLowerCase().trim(),
+          password_hash: `[hashed_via_api]`,
+          phone: pendingUser.phone || '',
+          address: pendingUser.address || '',
+          role: 'client',
+          avatar: null,
+          verified: true,
+        }, { onConflict: 'email', ignoreDuplicates: false });
+
+      if (supabaseError) {
+        console.warn('⚠️ Lưu Supabase thất bại (dữ liệu đã lưu vào SQLite):', supabaseError.message);
+      } else {
+        console.log('✅ Đã lưu thông tin khách hàng lên Supabase thành công!');
+      }
+
       setCurrentUser(res.user);
       setIsAuthOpen(false);
       setPendingUser(null);
       return { ok: true, user: res.user };
     } catch (err) {
-      return { error: err.message || 'Lỗi đăng ký tài khoản vào database' };
+      return { error: err.message || 'Lỗi đăng ký tài khoản' };
     }
   }, [pendingUser]);
 
-  // ── Login qua Database REST API ──────────────────────────────────────────
+  // ── Login ──────────────────────────────────────────────────────────────────
   const login = useCallback(async (email, password) => {
     try {
       const res = await authAPI.login({ email, password });
@@ -129,12 +151,25 @@ export const AuthProvider = ({ children }) => {
     setCurrentUser(null);
   }, []);
 
-  // ── Update profile trong Database ────────────────────────────────────────
+  // ── Update profile (cũng cập nhật Supabase) ──────────────────────────────
   const updateProfile = useCallback(async (updates) => {
     try {
       const res = await authAPI.updateProfile(updates);
       if (res.user) {
         setCurrentUser(res.user);
+
+        // Cập nhật đồng thời trên Supabase
+        if (res.user.id) {
+          await supabase
+            .from('users')
+            .update({
+              name: res.user.name,
+              phone: res.user.phone,
+              address: res.user.address,
+              avatar: res.user.avatar,
+            })
+            .eq('id', res.user.id);
+        }
       }
       return { ok: true, user: res.user };
     } catch (err) {
