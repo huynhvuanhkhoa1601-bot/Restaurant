@@ -81,10 +81,9 @@ const AuthModal = () => {
     e.preventDefault();
     clearError();
     setLoading(true);
-    await new Promise(r => setTimeout(r, 600)); // Simulate network
-    const result = login(loginData.email, loginData.password);
+    const result = await login(loginData.email, loginData.password);
     setLoading(false);
-    if (result.error) setError(result.error);
+    if (result && result.error) setError(result.error);
   };
 
   // ── Register submit ───────────────────────────────────────────────────────
@@ -100,19 +99,18 @@ const AuthModal = () => {
       return;
     }
     setLoading(true);
-    await new Promise(r => setTimeout(r, 700));
     const { confirmPassword, ...rest } = registerData;
     const result = submitRegister(rest);
     setLoading(false);
-    if (result.error) setError(result.error);
+    if (result && result.error) setError(result.error);
   };
 
   // ── Confirm submit ────────────────────────────────────────────────────────
   const handleConfirm = async () => {
     setLoading(true);
-    await new Promise(r => setTimeout(r, 800));
-    confirmRegister();
+    const result = await confirmRegister();
     setLoading(false);
+    if (result && result.error) setError(result.error);
   };
 
   if (!isAuthOpen) return null;

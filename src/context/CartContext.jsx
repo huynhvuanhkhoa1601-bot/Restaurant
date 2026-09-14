@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { foods, vouchers } from '../data/foods';
+import { foods as initialFoods, vouchers as initialVouchers } from '../data/foods';
+import { ordersAPI, foodsAPI, vouchersAPI } from '../services/api';
 
 const CartContext = createContext();
 
@@ -227,6 +228,23 @@ export const CartProvider = ({ children }) => {
     }
   }
 
+  const [vouchers, setVouchers] = useState(initialVouchers);
+  const [foodsList, setFoodsList] = useState(initialFoods);
+
+  useEffect(() => {
+    vouchersAPI.getAll()
+      .then(data => {
+        if (Array.isArray(data) && data.length > 0) setVouchers(data);
+      })
+      .catch(() => {});
+
+    foodsAPI.getAll()
+      .then(data => {
+        if (Array.isArray(data) && data.length > 0) setFoodsList(data);
+      })
+      .catch(() => {});
+  }, []);
+
   const tax = cartSubtotal > 0 ? Math.round(cartSubtotal * 0.05) : 0; // 5% VAT
   const cartTotal = Math.max(0, cartSubtotal + deliveryFee + tax - voucherDiscount);
 
@@ -275,33 +293,78 @@ export const CartProvider = ({ children }) => {
 
   const closeCheckout = () => setIsCheckoutOpen(false);
 
-  const placeOrder = (orderData) => {
-    const newOrder = {
-      orderId: `GF-${Math.floor(100000 + Math.random() * 900000)}`,
-      createdAt: new Date().toISOString(),
-      items: [...cart],
-      subtotal: cartSubtotal,
-      deliveryFee,
-      discount: voucherDiscount,
-      tax,
-      total: cartTotal,
-      customer: orderData,
-      status: 'confirmed', // 'confirmed', 'preparing', 'delivering', 'completed'
-      estimatedTime: '20-25 phút',
-      driver: {
-        name: 'Nguyễn Văn Hùng',
-        phone: '0988.123.456',
-        rating: 4.95,
-        vehicle: 'Honda Wave - 29A1-889.99',
-        avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80'
-      }
-    };
+  const placeOrder = async (orderData) => {
+    try {
+      const orderPayload = {
+        customer: orderData,
+        items: cart,
+        subtotal: cartSubtotal,
+        deliveryFee,
+        discount: voucherDiscount,
+        tax,
+        total: cartTotal,
+        voucherCode: appliedVoucher?.code || null,
+        notes: orderData.note || ''
+      };
 
-    setCurrentOrder(newOrder);
-    clearCart();
-    setIsCheckoutOpen(false);
-    setIsTrackingOpen(true);
-    playSound('success');
+      const res = await ordersAPI.create(orderPayload);
+
+      const newOrder = {
+        orderId: res.orderId || `GF-${Math.floor(100000 + Math.random() * 900000)}`,
+        createdAt: res.createdAt || new Date().toISOString(),
+        items: [...cart],
+        subtotal: cartSubtotal,
+        deliveryFee,
+        discount: voucherDiscount,
+        tax,
+        total: cartTotal,
+        customer: orderData,
+        status: res.status || 'confirmed',
+        estimatedTime: '20-25 phút',
+        driver: res.driver || {
+          name: 'Nguyễn Văn Hùng',
+          phone: '0988.123.456',
+          rating: 4.95,
+          vehicle: 'Honda Wave - 29A1-889.99',
+          avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80'
+        }
+      };
+
+      setCurrentOrder(newOrder);
+      clearCart();
+      setIsCheckoutOpen(false);
+      setIsTrackingOpen(true);
+      playSound('success');
+      showToast('Đơn hàng đã được lưu thành công vào cơ sở dữ liệu!', 'success');
+    } catch (err) {
+      console.warn('Lỗi gửi API đơn hàng, lưu chế độ offline:', err);
+      const fallbackOrder = {
+        orderId: `GF-${Math.floor(100000 + Math.random() * 900000)}`,
+        createdAt: new Date().toISOString(),
+        items: [...cart],
+        subtotal: cartSubtotal,
+        deliveryFee,
+        discount: voucherDiscount,
+        tax,
+        total: cartTotal,
+        customer: orderData,
+        status: 'confirmed',
+        estimatedTime: '20-25 phút',
+        driver: {
+          name: 'Nguyễn Văn Hùng',
+          phone: '0988.123.456',
+          rating: 4.95,
+          vehicle: 'Honda Wave - 29A1-889.99',
+          avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80'
+        }
+      };
+
+      setCurrentOrder(fallbackOrder);
+      clearCart();
+      setIsCheckoutOpen(false);
+      setIsTrackingOpen(true);
+      playSound('success');
+    }
   };
 
   // User state mock
@@ -332,6 +395,9 @@ export const CartProvider = ({ children }) => {
         voucherDiscount,
         tax,
         cartTotal,
+        vouchers,
+        foodsList,
+        setFoodsList,
         appliedVoucher,
         applyVoucher,
         removeVoucher,

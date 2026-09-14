@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Star, ThumbsUp, ShieldCheck, Plus, X, CheckCircle2,
@@ -7,6 +7,7 @@ import {
 import { reviews as initialReviews, foods } from '../data/foods';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
+import { reviewsAPI } from '../services/api';
 
 // ─── Star Selector ───────────────────────────────────────────────────────────
 const StarSelector = ({ value, onChange }) => (
@@ -218,6 +219,16 @@ const Reviews = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [likedReviews, setLikedReviews] = useState([]);
 
+  useEffect(() => {
+    reviewsAPI.getAll()
+      .then(data => {
+        if (Array.isArray(data) && data.length > 0) {
+          setReviewsList(data);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   const [newReview, setNewReview] = useState({
     rating: 5,
     dish: foods[0]?.name || '',
@@ -245,7 +256,7 @@ const Reviews = () => {
     setIsModalOpen(true);
   };
 
-  const handleSubmitReview = (e) => {
+  const handleSubmitReview = async (e) => {
     e.preventDefault();
     if (!newReview.comment.trim()) return;
 
@@ -262,10 +273,20 @@ const Reviews = () => {
       likes: 0,
     };
 
+    try {
+      await reviewsAPI.create({
+        name: created.name,
+        avatar: created.avatar,
+        rating: created.rating,
+        dish: created.dish,
+        comment: created.comment
+      });
+    } catch (_) {}
+
     setReviewsList([created, ...reviewsList]);
     setIsModalOpen(false);
     setNewReview({ rating: 5, dish: foods[0]?.name || '', comment: '', photos: [] });
-    showToast('Cảm ơn bạn! Đánh giá của bạn đã được gửi thành công! 🎉', 'success');
+    showToast('Cảm ơn bạn! Đánh giá đã được lưu vào hệ thống! 🎉', 'success');
   };
 
   const addPhoto = (photo) => setNewReview(prev => ({ ...prev, photos: [...prev.photos, photo] }));

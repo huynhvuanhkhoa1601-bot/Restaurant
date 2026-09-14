@@ -1,66 +1,29 @@
 /**
  * =========================================================================
  * 🔐 HỆ THỐNG QUẢN LÝ TÀI KHOẢN (Authentication Context)
- * - Lưu trữ dữ liệu bằng localStorage (không cần backend)
+ * - Tích hợp Database SQLite & REST API qua authAPI
  * - Phân quyền: admin | client
  * - Quy trình: Đăng ký → Xác nhận thông tin → Đăng nhập
  * =========================================================================
  */
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { authAPI } from '../services/api';
 
 const AuthContext = createContext(null);
 
-// ─── Tài khoản Admin mặc định (seed data) ───────────────────────────────────
-const SEED_ADMIN = {
-  id: 'admin-001',
-  name: 'KenRestaurant Admin',
-  email: 'admin@kenrestaurant.vn',
-  password: 'Admin@2024',      // Trong thực tế cần hash, đây là demo
-  phone: '0334756330',
-  address: '133/50/4 Cống Lở, P.15, Q.Tân Bình, TP.HCM',
-  role: 'admin',
-  avatar: null,
-  verified: true,
-  createdAt: new Date().toISOString(),
-};
+const TOKEN_KEY = 'kenrestaurant_token';
+const USER_KEY = 'kenrestaurant_session';
 
-const STORAGE_KEY = 'kenrestaurant_users';
-const SESSION_KEY = 'kenrestaurant_session';
-
-// ─── Helpers ────────────────────────────────────────────────────────────────
-const loadUsers = () => {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw);
-  } catch (_) {}
-  // Seed admin nếu chưa có dữ liệu
-  const initial = [SEED_ADMIN];
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(initial));
-  return initial;
-};
-
-const saveUsers = (users) => {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(users));
-};
-
-const loadSession = () => {
-  try {
-    const raw = sessionStorage.getItem(SESSION_KEY);
-    if (raw) return JSON.parse(raw);
-  } catch (_) {}
-  return null;
-};
-
-const saveSession = (user) => {
-  if (user) sessionStorage.setItem(SESSION_KEY, JSON.stringify(user));
-  else sessionStorage.removeItem(SESSION_KEY);
-};
-
-// ─── Provider ───────────────────────────────────────────────────────────────
 export const AuthProvider = ({ children }) => {
-  const [users, setUsers] = useState(loadUsers);
-  const [currentUser, setCurrentUser] = useState(loadSession);
+  const [currentUser, setCurrentUser] = useState(() => {
+    try {
+      const saved = localStorage.getItem(USER_KEY) || sessionStorage.getItem(USER_KEY);
+      return saved ? JSON.parse(saved) : null;
+    } catch (_) {
+      return null;
+    }
+  });
 
   // Modal state
   const [isAuthOpen, setIsAuthOpen] = useState(false);
@@ -69,10 +32,33 @@ export const AuthProvider = ({ children }) => {
   // Register multi-step data
   const [pendingUser, setPendingUser] = useState(null);
 
-  // ── Sync session ──────────────────────────────────────────────────────────
+  // ── Sync session & verify token with backend ──────────────────────────────
   useEffect(() => {
-    saveSession(currentUser);
+    if (currentUser) {
+      localStorage.setItem(USER_KEY, JSON.stringify(currentUser));
+    } else {
+      localStorage.removeItem(USER_KEY);
+      sessionStorage.removeItem(USER_KEY);
+    }
   }, [currentUser]);
+
+  useEffect(() => {
+    const token = localStorage.getItem(TOKEN_KEY) || sessionStorage.getItem(TOKEN_KEY);
+    if (token) {
+      authAPI.getMe()
+        .then(res => {
+          if (res && res.user) {
+            setCurrentUser(res.user);
+          }
+        })
+        .catch(() => {
+          // Token không hợp lệ hoặc hết hạn
+          localStorage.removeItem(TOKEN_KEY);
+          sessionStorage.removeItem(TOKEN_KEY);
+          setCurrentUser(null);
+        });
+    }
+  }, []);
 
   // ── Open helpers ─────────────────────────────────────────────────────────
   const openLogin = useCallback(() => {
@@ -91,67 +77,70 @@ export const AuthProvider = ({ children }) => {
     setPendingUser(null);
   }, []);
 
-  // ── Register Step 1: thu thập info ───────────────────────────────────────
+  // ── Register Step 1: Thu thập thông tin ──────────────────────────────────
   const submitRegister = useCallback((formData) => {
-    const { email } = formData;
-    if (users.find(u => u.email.toLowerCase() === email.toLowerCase())) {
-      return { error: 'Email này đã được đăng ký. Vui lòng dùng email khác.' };
-    }
-
     const draft = {
-      id: `user-${Date.now()}`,
       ...formData,
       role: 'client',
       verified: false,
-      createdAt: new Date().toISOString(),
     };
-
     setPendingUser(draft);
     setAuthMode('confirm'); // Bước 2: Xác nhận thông tin
     return { ok: true };
-  }, [users]);
+  }, []);
 
-  // ── Register Step 2: xác nhận & lưu ─────────────────────────────────────
-  const confirmRegister = useCallback(() => {
-    if (!pendingUser) return;
+  // ── Register Step 2: Xác nhận & Lưu vào Database ─────────────────────────
+  const confirmRegister = useCallback(async () => {
+    if (!pendingUser) return { error: 'Không có dữ liệu đăng ký' };
 
-    const confirmed = { ...pendingUser, verified: true };
-    const updated = [...users, confirmed];
-    setUsers(updated);
-    saveUsers(updated);
-    setCurrentUser(confirmed);
-    setIsAuthOpen(false);
-    setPendingUser(null);
-    return { ok: true };
-  }, [pendingUser, users]);
+    try {
+      const res = await authAPI.register(pendingUser);
+      if (res.token) {
+        localStorage.setItem(TOKEN_KEY, res.token);
+      }
+      setCurrentUser(res.user);
+      setIsAuthOpen(false);
+      setPendingUser(null);
+      return { ok: true, user: res.user };
+    } catch (err) {
+      return { error: err.message || 'Lỗi đăng ký tài khoản vào database' };
+    }
+  }, [pendingUser]);
 
-  // ── Login ─────────────────────────────────────────────────────────────────
-  const login = useCallback((email, password) => {
-    const found = users.find(
-      u => u.email.toLowerCase() === email.toLowerCase() && u.password === password
-    );
-    if (!found) return { error: 'Email hoặc mật khẩu không đúng.' };
-    if (!found.verified) return { error: 'Tài khoản chưa được xác nhận.' };
-
-    setCurrentUser(found);
-    setIsAuthOpen(false);
-    return { ok: true, user: found };
-  }, [users]);
+  // ── Login qua Database REST API ──────────────────────────────────────────
+  const login = useCallback(async (email, password) => {
+    try {
+      const res = await authAPI.login({ email, password });
+      if (res.token) {
+        localStorage.setItem(TOKEN_KEY, res.token);
+      }
+      setCurrentUser(res.user);
+      setIsAuthOpen(false);
+      return { ok: true, user: res.user };
+    } catch (err) {
+      return { error: err.message || 'Email hoặc mật khẩu không chính xác.' };
+    }
+  }, []);
 
   // ── Logout ────────────────────────────────────────────────────────────────
   const logout = useCallback(() => {
+    localStorage.removeItem(TOKEN_KEY);
+    sessionStorage.removeItem(TOKEN_KEY);
     setCurrentUser(null);
-    saveSession(null);
   }, []);
 
-  // ── Update profile ────────────────────────────────────────────────────────
-  const updateProfile = useCallback((updates) => {
-    const updated = { ...currentUser, ...updates };
-    setCurrentUser(updated);
-    const updatedUsers = users.map(u => u.id === updated.id ? updated : u);
-    setUsers(updatedUsers);
-    saveUsers(updatedUsers);
-  }, [currentUser, users]);
+  // ── Update profile trong Database ────────────────────────────────────────
+  const updateProfile = useCallback(async (updates) => {
+    try {
+      const res = await authAPI.updateProfile(updates);
+      if (res.user) {
+        setCurrentUser(res.user);
+      }
+      return { ok: true, user: res.user };
+    } catch (err) {
+      return { error: err.message };
+    }
+  }, []);
 
   // ── Admin helpers ─────────────────────────────────────────────────────────
   const isAdmin = currentUser?.role === 'admin';
@@ -162,7 +151,7 @@ export const AuthProvider = ({ children }) => {
       currentUser,
       isLoggedIn,
       isAdmin,
-      users,
+      users: [],
       isAuthOpen,
       authMode,
       setAuthMode,

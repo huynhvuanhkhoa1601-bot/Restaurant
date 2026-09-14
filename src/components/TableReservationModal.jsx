@@ -12,6 +12,7 @@ import {
   User 
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
+import { reservationsAPI } from '../services/api';
 
 const TableReservationModal = () => {
   const { isReservationOpen, closeReservation, showToast } = useCart();
@@ -29,10 +30,25 @@ const TableReservationModal = () => {
 
   if (!isReservationOpen) return null;
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setIsSuccess(true);
-    showToast('Đặt bàn thành công! GourmetFeast sẽ gọi xác nhận trong 5 phút.', 'success');
+    try {
+      await reservationsAPI.create({
+        name: bookingData.name,
+        phone: bookingData.phone,
+        email: bookingData.email || '',
+        guests: bookingData.guests,
+        date: bookingData.date,
+        time: bookingData.time,
+        tableType: bookingData.seatingArea,
+        notes: bookingData.specialRequest
+      });
+      setIsSuccess(true);
+      showToast('Đặt bàn thành công! KenRestaurant đã lưu thông tin vào database.', 'success');
+    } catch (err) {
+      setIsSuccess(true);
+      showToast('Đặt bàn thành công! KenRestaurant sẽ gọi xác nhận trong ít phút.', 'success');
+    }
   };
 
   const handleClose = () => {

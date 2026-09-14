@@ -9,5 +9,11 @@ export default defineConfig({
     port: 3000,
     open: true,
     allowedHosts: 'all',   // ← Cho phép mọi domain bên ngoài (ngrok, localhost.run, v.v.)
+    proxy: {
+      '/api': {
+        target: 'http://localhost:5000',
+        changeOrigin: true,
+      },
+    },
   },
 });

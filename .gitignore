@@ -24,6 +24,8 @@ lerna-debug.log*
 .vscode/
 .idea/
 Thumbs.db
+*.db-wal
+*.db-shm
 
 # Other projects & saved browser offline files
 Web ielts/
