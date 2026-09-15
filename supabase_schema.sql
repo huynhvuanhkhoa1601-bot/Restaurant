@@ -56,8 +56,14 @@ CREATE TABLE public.orders (
   status           TEXT DEFAULT 'confirmed' CHECK (status IN ('confirmed', 'preparing', 'shipping', 'delivered', 'cancelled')),
   estimated_time   TEXT,
   driver           JSONB,
+  order_type       TEXT DEFAULT 'delivery',
+  table_number     TEXT,
   created_at       TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Thêm cột gọi món tại bàn nếu bảng orders đã tồn tại trên Supabase:
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS order_type TEXT DEFAULT 'delivery';
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS table_number TEXT;
 
 -- ── 4. BẢNG CHI TIẾT ĐƠN HÀNG (order_items) ────────────────
 CREATE TABLE public.order_items (

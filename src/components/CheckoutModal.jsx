@@ -12,7 +12,9 @@ import {
   ShieldCheck, 
   CheckCircle2, 
   ArrowRight,
-  ChevronLeft
+  ChevronLeft,
+  Utensils,
+  AlertCircle
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useCart } from '../context/CartContext';
@@ -30,10 +32,15 @@ const CheckoutModal = () => {
     cartTotal,
     appliedVoucher,
     placeOrder,
-    currentUser
+    currentUser,
+    diningMode,
+    setDiningMode,
+    selectedTable,
+    openTableQR
   } = useCart();
 
   const [step, setStep] = useState(1); // 1: Info, 2: Payment
+  const isDineIn = diningMode === 'dine_in';
   const [formData, setFormData] = useState({
     name: currentUser.name || 'Nguyễn Hải Đăng',
     phone: currentUser.phone || '0912.345.678',
@@ -52,6 +59,11 @@ const CheckoutModal = () => {
   };
 
   const handleConfirmOrder = () => {
+    if (isDineIn && !selectedTable) {
+      openTableQR();
+      return;
+    }
+
     // Fire confetti effect
     try {
       confetti({
@@ -64,7 +76,11 @@ const CheckoutModal = () => {
       // Confetti fallback
     }
 
-    placeOrder(formData);
+    placeOrder({
+      ...formData,
+      orderType: diningMode,
+      tableNumber: selectedTable?.name || null
+    });
   };
 
   return (
@@ -120,117 +136,259 @@ const CheckoutModal = () => {
         <div className="overflow-y-auto p-6 space-y-6">
           
           {step === 1 ? (
-            /* STEP 1: Delivery Information */
+            /* STEP 1: Delivery Information OR Dine-in Table Information */
             <div className="space-y-4">
-              
-              {/* Delivery Timing Options */}
-              <div className="grid grid-cols-2 gap-3">
-                <div
-                  onClick={() => setFormData({ ...formData, deliveryType: 'now' })}
-                  className={`p-3.5 rounded-2xl border-2 cursor-pointer transition-all ${
-                    formData.deliveryType === 'now'
-                      ? 'border-orange-500 bg-orange-50/60 dark:bg-orange-950/40'
-                      : 'border-gray-200 dark:border-gray-700'
+
+              {/* Mode Switcher */}
+              <div className="grid grid-cols-2 p-1 bg-gray-100 dark:bg-gray-800 rounded-2xl text-xs font-bold">
+                <button
+                  type="button"
+                  onClick={() => setDiningMode('delivery')}
+                  className={`py-2 px-3 rounded-xl flex items-center justify-center gap-1.5 transition-all ${
+                    !isDineIn
+                      ? 'bg-white dark:bg-gray-700 text-orange-600 dark:text-orange-400 shadow-sm'
+                      : 'text-gray-500 dark:text-gray-400 hover:text-gray-800'
                   }`}
                 >
-                  <div className="flex items-center gap-2 text-sm font-bold text-gray-900 dark:text-white">
-                    <Clock className="w-4 h-4 text-orange-500" />
-                    <span>Giao Siêu Tốc</span>
-                  </div>
-                  <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">
-                    Giao ngay trong 20 - 25 phút
-                  </p>
-                </div>
+                  <MapPin className="w-3.5 h-3.5" />
+                  <span>🛵 Giao Tận Nơi</span>
+                </button>
 
-                <div
-                  onClick={() => setFormData({ ...formData, deliveryType: 'scheduled' })}
-                  className={`p-3.5 rounded-2xl border-2 cursor-pointer transition-all ${
-                    formData.deliveryType === 'scheduled'
-                      ? 'border-orange-500 bg-orange-50/60 dark:bg-orange-950/40'
-                      : 'border-gray-200 dark:border-gray-700'
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDiningMode('dine_in');
+                    if (!selectedTable) openTableQR();
+                  }}
+                  className={`py-2 px-3 rounded-xl flex items-center justify-center gap-1.5 transition-all ${
+                    isDineIn
+                      ? 'bg-white dark:bg-gray-700 text-emerald-600 dark:text-emerald-400 shadow-sm'
+                      : 'text-gray-500 dark:text-gray-400 hover:text-gray-800'
                   }`}
                 >
-                  <div className="flex items-center gap-2 text-sm font-bold text-gray-900 dark:text-white">
-                    <Clock className="w-4 h-4 text-amber-500" />
-                    <span>Hẹn Giờ Giao</span>
+                  <Utensils className="w-3.5 h-3.5" />
+                  <span>🍽️ Dùng Tại Bàn (QR)</span>
+                </button>
+              </div>
+
+              {isDineIn ? (
+                /* DINE-IN TABLE FORM */
+                <div className="space-y-4">
+                  {/* Table Selection Banner */}
+                  {selectedTable ? (
+                    <div className="bg-gradient-to-r from-emerald-500/15 via-teal-500/10 to-emerald-500/5 p-4 rounded-2xl border-2 border-emerald-400 dark:border-emerald-600/50 flex items-center justify-between shadow-sm">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white font-black text-sm flex items-center justify-center shadow-md shadow-emerald-500/30 shrink-0">
+                          {selectedTable.code}
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h4 className="font-black text-sm sm:text-base text-gray-900 dark:text-white">
+                              {selectedTable.name} • {selectedTable.floor}
+                            </h4>
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300">
+                              0đ Phí Ship
+                            </span>
+                          </div>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                            {selectedTable.area} • {selectedTable.capacity}
+                          </p>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={openTableQR}
+                        className="px-3 py-1.5 rounded-xl bg-white dark:bg-gray-800 text-emerald-600 dark:text-emerald-400 font-extrabold text-xs hover:bg-emerald-50 border border-emerald-200 dark:border-emerald-700/60 shadow-sm transition-all shrink-0 flex items-center gap-1"
+                      >
+                        <QrCode className="w-3.5 h-3.5" />
+                        <span>Đổi Bàn</span>
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="bg-amber-50 dark:bg-amber-950/40 p-4 rounded-2xl border-2 border-dashed border-orange-400 text-center space-y-2">
+                      <div className="flex items-center justify-center gap-1.5 text-xs font-bold text-orange-600 dark:text-orange-400">
+                        <AlertCircle className="w-4 h-4" />
+                        <span>Quý khách chưa chọn số bàn ăn tại quán</span>
+                      </div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        Vui lòng quét mã QR dán trên bàn của bạn hoặc bấm nút chọn bàn nhanh bên dưới:
+                      </p>
+                      <button
+                        type="button"
+                        onClick={openTableQR}
+                        className="px-5 py-2.5 bg-gradient-to-r from-orange-500 to-rose-500 text-white rounded-xl text-xs font-bold shadow-md hover:brightness-110 transition-all inline-flex items-center gap-2"
+                      >
+                        <QrCode className="w-4 h-4" />
+                        <span>📷 Quét Mã QR Hoặc Chọn Bàn Ngay</span>
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Customer Name */}
+                  <div>
+                    <label className="text-xs font-bold text-gray-600 dark:text-gray-300 block mb-1.5">
+                      Tên khách hàng / Đại diện bàn (Tùy chọn)
+                    </label>
+                    <div className="relative">
+                      <User className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="text"
+                        name="name"
+                        value={formData.name}
+                        onChange={handleChange}
+                        placeholder="VD: Anh Khoa (Bàn 01)"
+                        className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl pl-10 pr-4 py-3 text-xs sm:text-sm font-semibold outline-none focus:border-orange-500 text-gray-900 dark:text-white"
+                      />
+                    </div>
                   </div>
-                  <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">
-                    Chọn thời gian bạn muốn nhận
-                  </p>
-                </div>
-              </div>
 
-              {/* Recipient Full Name */}
-              <div>
-                <label className="text-xs font-bold text-gray-600 dark:text-gray-300 block mb-1.5">
-                  Họ và tên người nhận *
-                </label>
-                <div className="relative">
-                  <User className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="text"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleChange}
-                    required
-                    placeholder="VD: Nguyễn Hải Đăng"
-                    className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl pl-10 pr-4 py-3 text-xs sm:text-sm font-semibold outline-none focus:border-orange-500 text-gray-900 dark:text-white"
-                  />
-                </div>
-              </div>
+                  {/* Phone */}
+                  <div>
+                    <label className="text-xs font-bold text-gray-600 dark:text-gray-300 block mb-1.5">
+                      Số điện thoại (Nhận hóa đơn điện tử / Tích điểm)
+                    </label>
+                    <div className="relative">
+                      <Phone className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="tel"
+                        name="phone"
+                        value={formData.phone}
+                        onChange={handleChange}
+                        placeholder="VD: 0912.345.678"
+                        className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl pl-10 pr-4 py-3 text-xs sm:text-sm font-semibold outline-none focus:border-orange-500 text-gray-900 dark:text-white"
+                      />
+                    </div>
+                  </div>
 
-              {/* Phone Number */}
-              <div>
-                <label className="text-xs font-bold text-gray-600 dark:text-gray-300 block mb-1.5">
-                  Số điện thoại nhận hàng *
-                </label>
-                <div className="relative">
-                  <Phone className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="tel"
-                    name="phone"
-                    value={formData.phone}
-                    onChange={handleChange}
-                    required
-                    placeholder="VD: 0912.345.678"
-                    className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl pl-10 pr-4 py-3 text-xs sm:text-sm font-semibold outline-none focus:border-orange-500 text-gray-900 dark:text-white"
-                  />
+                  {/* Kitchen / Service Note */}
+                  <div>
+                    <label className="text-xs font-bold text-gray-600 dark:text-gray-300 block mb-1.5">
+                      Ghi chú cho Bếp &amp; Phục vụ tại bàn (Tùy chọn)
+                    </label>
+                    <textarea
+                      name="note"
+                      value={formData.note}
+                      onChange={handleChange}
+                      rows={2}
+                      placeholder="VD: Ít cay, không hành tây, mang đồ uống lên trước, xin thêm đá lạnh..."
+                      className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-3 text-xs sm:text-sm outline-none focus:border-orange-500 text-gray-900 dark:text-white resize-none"
+                    />
+                  </div>
                 </div>
-              </div>
+              ) : (
+                /* DELIVERY FORM */
+                <div className="space-y-4">
+                  {/* Delivery Timing Options */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div
+                      onClick={() => setFormData({ ...formData, deliveryType: 'now' })}
+                      className={`p-3.5 rounded-2xl border-2 cursor-pointer transition-all ${
+                        formData.deliveryType === 'now'
+                          ? 'border-orange-500 bg-orange-50/60 dark:bg-orange-950/40'
+                          : 'border-gray-200 dark:border-gray-700'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 text-sm font-bold text-gray-900 dark:text-white">
+                        <Clock className="w-4 h-4 text-orange-500" />
+                        <span>Giao Siêu Tốc</span>
+                      </div>
+                      <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">
+                        Giao ngay trong 20 - 25 phút
+                      </p>
+                    </div>
 
-              {/* Delivery Address */}
-              <div>
-                <label className="text-xs font-bold text-gray-600 dark:text-gray-300 block mb-1.5">
-                  Địa chỉ giao hàng chi tiết *
-                </label>
-                <div className="relative">
-                  <MapPin className="w-4 h-4 text-gray-400 absolute left-3.5 top-3.5" />
-                  <textarea
-                    name="address"
-                    value={formData.address}
-                    onChange={handleChange}
-                    required
-                    rows={2}
-                    placeholder="Số nhà, tên đường, toà nhà, phường, quận..."
-                    className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl pl-10 pr-4 py-3 text-xs sm:text-sm font-semibold outline-none focus:border-orange-500 text-gray-900 dark:text-white resize-none"
-                  />
+                    <div
+                      onClick={() => setFormData({ ...formData, deliveryType: 'scheduled' })}
+                      className={`p-3.5 rounded-2xl border-2 cursor-pointer transition-all ${
+                        formData.deliveryType === 'scheduled'
+                          ? 'border-orange-500 bg-orange-50/60 dark:bg-orange-950/40'
+                          : 'border-gray-200 dark:border-gray-700'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 text-sm font-bold text-gray-900 dark:text-white">
+                        <Clock className="w-4 h-4 text-amber-500" />
+                        <span>Hẹn Giờ Giao</span>
+                      </div>
+                      <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">
+                        Chọn thời gian bạn muốn nhận
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Recipient Full Name */}
+                  <div>
+                    <label className="text-xs font-bold text-gray-600 dark:text-gray-300 block mb-1.5">
+                      Họ và tên người nhận *
+                    </label>
+                    <div className="relative">
+                      <User className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="text"
+                        name="name"
+                        value={formData.name}
+                        onChange={handleChange}
+                        required
+                        placeholder="VD: Nguyễn Hải Đăng"
+                        className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl pl-10 pr-4 py-3 text-xs sm:text-sm font-semibold outline-none focus:border-orange-500 text-gray-900 dark:text-white"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Phone Number */}
+                  <div>
+                    <label className="text-xs font-bold text-gray-600 dark:text-gray-300 block mb-1.5">
+                      Số điện thoại nhận hàng *
+                    </label>
+                    <div className="relative">
+                      <Phone className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="tel"
+                        name="phone"
+                        value={formData.phone}
+                        onChange={handleChange}
+                        required
+                        placeholder="VD: 0912.345.678"
+                        className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl pl-10 pr-4 py-3 text-xs sm:text-sm font-semibold outline-none focus:border-orange-500 text-gray-900 dark:text-white"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Delivery Address */}
+                  <div>
+                    <label className="text-xs font-bold text-gray-600 dark:text-gray-300 block mb-1.5">
+                      Địa chỉ giao hàng chi tiết *
+                    </label>
+                    <div className="relative">
+                      <MapPin className="w-4 h-4 text-gray-400 absolute left-3.5 top-3.5" />
+                      <textarea
+                        name="address"
+                        value={formData.address}
+                        onChange={handleChange}
+                        required
+                        rows={2}
+                        placeholder="Số nhà, tên đường, toà nhà, phường, quận..."
+                        className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl pl-10 pr-4 py-3 text-xs sm:text-sm font-semibold outline-none focus:border-orange-500 text-gray-900 dark:text-white resize-none"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Delivery Notes */}
+                  <div>
+                    <label className="text-xs font-bold text-gray-600 dark:text-gray-300 block mb-1.5">
+                      Ghi chú cho shipper (Tùy chọn)
+                    </label>
+                    <input
+                      type="text"
+                      name="note"
+                      value={formData.note}
+                      onChange={handleChange}
+                      placeholder="VD: Gọi trước khi giao, gửi tại sảnh lễ tân..."
+                      className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl px-4 py-2.5 text-xs outline-none focus:border-orange-500 text-gray-900 dark:text-white"
+                    />
+                  </div>
                 </div>
-              </div>
-
-              {/* Delivery Notes */}
-              <div>
-                <label className="text-xs font-bold text-gray-600 dark:text-gray-300 block mb-1.5">
-                  Ghi chú cho shipper (Tùy chọn)
-                </label>
-                <input
-                  type="text"
-                  name="note"
-                  value={formData.note}
-                  onChange={handleChange}
-                  placeholder="VD: Gọi trước khi giao, gửi tại sảnh lễ tân..."
-                  className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl px-4 py-2.5 text-xs outline-none focus:border-orange-500 text-gray-900 dark:text-white"
-                />
-              </div>
+              )}
 
             </div>
           ) : (
@@ -268,7 +426,7 @@ const CheckoutModal = () => {
                 </div>
               </div>
 
-              {/* Cash On Delivery Option */}
+              {/* Cash On Delivery / At Table Option */}
               <div
                 onClick={() => setFormData({ ...formData, paymentMethod: 'cod' })}
                 className={`p-4 rounded-2xl border-2 cursor-pointer transition-all flex items-start gap-4 ${
@@ -282,10 +440,12 @@ const CheckoutModal = () => {
                 </div>
                 <div className="flex-1">
                   <h4 className="text-sm font-extrabold text-gray-900 dark:text-white">
-                    Thanh Toán Tiền Mặt Khi Nhận Hàng (COD)
+                    {isDineIn ? 'Thanh Toán Tại Bàn Sau Khi Ăn' : 'Thanh Toán Tiền Mặt Khi Nhận Hàng (COD)'}
                   </h4>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    Kiểm tra món ăn nóng hổi trước khi thanh toán cho tài xế.
+                    {isDineIn 
+                      ? 'Thanh toán tiền mặt hoặc yêu cầu quẹt thẻ khi nhân viên mang hóa đơn đến bàn.'
+                      : 'Kiểm tra món ăn nóng hổi trước khi thanh toán cho tài xế.'}
                   </p>
                 </div>
               </div>

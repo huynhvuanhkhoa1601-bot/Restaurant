@@ -11,15 +11,17 @@ import {
   Clock, 
   Star, 
   PackageCheck,
-  ShieldCheck
+  ShieldCheck,
+  Utensils,
+  Bell
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { formatCurrency } from '../data/foods';
 
 const OrderTrackingModal = () => {
-  const { isTrackingOpen, setIsTrackingOpen, currentOrder } = useCart();
-  const [currentStep, setCurrentStep] = useState(1); // 0: Placed, 1: Preparing, 2: Delivering, 3: Completed
-  const [etaMinutes, setEtaMinutes] = useState(18);
+  const { isTrackingOpen, setIsTrackingOpen, currentOrder, showToast } = useCart();
+  const [currentStep, setCurrentStep] = useState(1); // 0: Placed, 1: Preparing, 2: Delivering/Serving, 3: Completed
+  const [etaMinutes, setEtaMinutes] = useState(12);
 
   useEffect(() => {
     if (!isTrackingOpen) return;
@@ -28,7 +30,7 @@ const OrderTrackingModal = () => {
     const timer1 = setTimeout(() => setCurrentStep(1), 2000);
     const timer2 = setTimeout(() => {
       setCurrentStep(2);
-      setEtaMinutes(12);
+      setEtaMinutes(5);
     }, 6000);
 
     return () => {
@@ -39,12 +41,30 @@ const OrderTrackingModal = () => {
 
   if (!isTrackingOpen || !currentOrder) return null;
 
-  const steps = [
-    { title: 'Tiếp nhận đơn', desc: 'Nhà hàng đã xác nhận', icon: <CheckCircle2 className="w-5 h-5" /> },
-    { title: 'Đang chế biến', desc: 'Đầu bếp 5 sao chuẩn bị', icon: <ChefHat className="w-5 h-5" /> },
-    { title: 'Đang giao hàng', desc: 'Tài xế đang trên đường', icon: <Bike className="w-5 h-5" /> },
-    { title: 'Giao hoàn tất', desc: 'Thưởng thức ngon miệng!', icon: <PackageCheck className="w-5 h-5" /> },
+  const isDineIn = currentOrder.orderType === 'dine_in' || 
+                   currentOrder.customer?.orderType === 'dine_in' || 
+                   !!currentOrder.tableNumber;
+  const tableTitle = currentOrder.tableNumber || currentOrder.customer?.tableNumber || 'Bàn Ăn';
+
+  const steps = isDineIn ? [
+    { title: 'Tiếp nhận', icon: <CheckCircle2 className="w-5 h-5" /> },
+    { title: 'Bếp nấu', icon: <ChefHat className="w-5 h-5" /> },
+    { title: 'Mang ra bàn', icon: <Utensils className="w-5 h-5" /> },
+    { title: 'Hoàn tất', icon: <PackageCheck className="w-5 h-5" /> },
+  ] : [
+    { title: 'Tiếp nhận đơn', icon: <CheckCircle2 className="w-5 h-5" /> },
+    { title: 'Đang chế biến', icon: <ChefHat className="w-5 h-5" /> },
+    { title: 'Đang giao hàng', icon: <Bike className="w-5 h-5" /> },
+    { title: 'Giao hoàn tất', icon: <PackageCheck className="w-5 h-5" /> },
   ];
+
+  const handleCallStaff = () => {
+    if (showToast) {
+      showToast(`Đã rung chuông gọi nhân viên phục vụ tới ${tableTitle}!`, 'success');
+    } else {
+      alert(`Đã rung chuông gọi nhân viên phục vụ tới ${tableTitle}!`);
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4 sm:p-6">
@@ -77,15 +97,21 @@ const OrderTrackingModal = () => {
 
           <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider bg-black/20 px-3 py-1 rounded-full w-fit mb-3">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-            <span>Mã Đơn: #{currentOrder.orderId}</span>
+            <span>{isDineIn ? `🍽️ Gọi Món Tại ${tableTitle}` : '🛵 Giao Tận Nơi'} • #{currentOrder.orderId}</span>
           </div>
 
           <h2 className="text-2xl font-black mb-1">
-            {currentStep === 2 ? 'Tài Xế Đang Giao Đến Bạn!' : 'Đang Chuẩn Bị Món Ăn Nóng Hổi'}
+            {isDineIn
+              ? (currentStep >= 2 ? `Món Đang Được Bưng Đến ${tableTitle}!` : 'Bếp KenRestaurant Đang Nấu Món Nóng')
+              : (currentStep === 2 ? 'Tài Xế Đang Giao Đến Bạn!' : 'Đang Chuẩn Bị Món Ăn Nóng Hổi')}
           </h2>
           <p className="text-xs text-orange-100 flex items-center gap-1">
             <Clock className="w-3.5 h-3.5" />
-            <span>Thời gian dự kiến nhận hàng: <strong>{etaMinutes} phút nữa</strong></span>
+            <span>
+              {isDineIn 
+                ? `Thời gian phục vụ dự kiến: khoảng ${etaMinutes} phút`
+                : `Thời gian dự kiến nhận hàng: ${etaMinutes} phút nữa`}
+            </span>
           </p>
         </div>
 
@@ -125,122 +151,156 @@ const OrderTrackingModal = () => {
             })}
           </div>
 
-          {/* Simulated Map View with Animated Delivery Vehicle */}
-          <div className="relative w-full h-44 rounded-2xl overflow-hidden border border-gray-200 dark:border-gray-700 bg-emerald-950/10">
-            {/* Map Background Pattern */}
-            <div className="absolute inset-0 opacity-40 bg-[radial-gradient(#f97316_1px,transparent_1px)] [background-size:16px_16px]" />
-            
-            {/* Mock Route Line */}
-            <svg className="absolute inset-0 w-full h-full" xmlns="http://www.w3.org/2000/svg">
-              <path 
-                d="M 50 110 Q 150 30 250 80 T 450 60" 
-                fill="none" 
-                stroke="#f97316" 
-                strokeWidth="4" 
-                strokeDasharray="6 6"
-                className="animate-pulse"
-              />
-            </svg>
-
-            {/* Restaurant Pin */}
-            <div className="absolute bottom-6 left-8 flex flex-col items-center">
-              <div className="bg-orange-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-md shadow-md mb-1">
-                Nhà hàng GourmetFeast
-              </div>
-              <div className="w-6 h-6 rounded-full bg-orange-500 text-white flex items-center justify-center shadow-lg">
-                🍴
-              </div>
-            </div>
-
-            {/* Driver Marker */}
-            <motion.div 
-              animate={{ x: [0, 80, 160], y: [0, -20, 10] }}
-              transition={{ repeat: Infinity, duration: 4, ease: 'easeInOut' }}
-              className="absolute top-12 left-1/3 flex flex-col items-center"
-            >
-              <div className="bg-emerald-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-md shadow-md mb-1 animate-bounce">
-                Shipper ({etaMinutes}p)
-              </div>
-              <div className="w-8 h-8 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-xl ring-4 ring-emerald-300/40">
-                <Bike className="w-5 h-5" />
-              </div>
-            </motion.div>
-
-            {/* Customer Home Pin */}
-            <div className="absolute top-4 right-8 flex flex-col items-center">
-              <div className="bg-gray-900 text-white text-[10px] font-bold px-2 py-0.5 rounded-md shadow-md mb-1">
-                Địa chỉ của bạn
-              </div>
-              <div className="w-6 h-6 rounded-full bg-rose-500 text-white flex items-center justify-center shadow-lg">
-                <MapPin className="w-4 h-4" />
-              </div>
-            </div>
-          </div>
-
-          {/* Driver Profile Card */}
-          <div className="flex items-center justify-between p-4 rounded-2xl bg-gray-50 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700">
-            <div className="flex items-center gap-3">
-              <img 
-                src={currentOrder.driver.avatar} 
-                alt={currentOrder.driver.name}
-                className="w-12 h-12 rounded-full object-cover ring-2 ring-orange-500" 
-              />
-              <div>
-                <div className="flex items-center gap-1.5">
-                  <h4 className="text-sm font-extrabold text-gray-900 dark:text-white">
-                    {currentOrder.driver.name}
-                  </h4>
-                  <span className="flex items-center gap-0.5 text-xs text-amber-500 font-bold">
-                    <Star className="w-3 h-3 fill-amber-400" />
-                    {currentOrder.driver.rating}
-                  </span>
+          {/* DINE-IN SERVICE CARD OR DRIVER CARD */}
+          {isDineIn ? (
+            <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-500/10 via-teal-500/5 to-transparent border border-emerald-300 dark:border-emerald-800/60 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white flex items-center justify-center font-black shadow-md shrink-0">
+                  <Utensils className="w-6 h-6" />
                 </div>
-                <p className="text-xs text-gray-500 dark:text-gray-400">
-                  {currentOrder.driver.vehicle}
-                </p>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h4 className="text-sm font-extrabold text-gray-900 dark:text-white">
+                      Phục Vụ Trực Tiếp Tại {tableTitle}
+                    </h4>
+                    <span className="text-[10px] bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 px-2 py-0.5 rounded-full font-bold">
+                      0đ Ship
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                    Đầu bếp đang nấu theo yêu cầu • Nhân viên sẽ dọn món tới bàn
+                  </p>
+                </div>
               </div>
-            </div>
 
-            <div className="flex items-center gap-2">
-              <a
-                href={`tel:${currentOrder.driver.phone}`}
-                className="w-10 h-10 rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-white flex items-center justify-center shadow-md transition-colors"
-                title="Gọi cho tài xế"
-              >
-                <Phone className="w-4 h-4" />
-              </a>
               <button
-                onClick={() => alert(`Đang mở khung trò chuyện với tài xế ${currentOrder.driver.name}`)}
-                className="w-10 h-10 rounded-2xl bg-orange-500 hover:bg-orange-600 text-white flex items-center justify-center shadow-md transition-colors"
-                title="Nhắn tin"
+                type="button"
+                onClick={handleCallStaff}
+                className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md shadow-emerald-600/20 transition-all shrink-0"
               >
-                <MessageSquare className="w-4 h-4" />
+                <Bell className="w-4 h-4 animate-bounce" />
+                <span className="hidden sm:inline">Gọi Nhân Viên</span>
               </button>
             </div>
-          </div>
+          ) : (
+            <>
+              {/* Delivery Map Mockup */}
+              <div className="relative h-40 bg-gray-100 dark:bg-gray-800 rounded-2xl overflow-hidden border border-gray-200 dark:border-gray-700">
+                <div className="absolute inset-0 opacity-40 bg-[radial-gradient(#f97316_1px,transparent_1px)] [background-size:16px_16px]" />
+                
+                <svg className="absolute inset-0 w-full h-full" xmlns="http://www.w3.org/2000/svg">
+                  <path 
+                    d="M 50 110 Q 150 30 250 80 T 450 60" 
+                    fill="none" 
+                    stroke="#f97316" 
+                    strokeWidth="4" 
+                    strokeDasharray="6 6"
+                    className="animate-pulse"
+                  />
+                </svg>
 
-          {/* Ordered Items Summary */}
-          <div className="space-y-2">
-            <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider">
-              Danh Sách Món Đã Đặt ({currentOrder.items.length})
-            </h4>
-            <div className="divide-y divide-gray-100 dark:divide-gray-800">
-              {currentOrder.items.map((item, idx) => (
-                <div key={idx} className="py-2 flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold text-orange-500">{item.quantity}x</span>
-                    <span className="font-semibold text-gray-800 dark:text-gray-200">{item.name}</span>
+                <div className="absolute bottom-6 left-8 flex flex-col items-center">
+                  <div className="bg-orange-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-md shadow-md mb-1">
+                    KenRestaurant
                   </div>
-                  <span className="font-bold text-gray-900 dark:text-white">
+                  <div className="w-6 h-6 rounded-full bg-orange-500 text-white flex items-center justify-center shadow-lg">
+                    🍴
+                  </div>
+                </div>
+
+                <motion.div 
+                  animate={{ x: [0, 80, 160], y: [0, -20, 10] }}
+                  transition={{ repeat: Infinity, duration: 4, ease: 'easeInOut' }}
+                  className="absolute top-12 left-1/3 flex flex-col items-center"
+                >
+                  <div className="bg-emerald-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-md shadow-md mb-1 animate-bounce">
+                    Shipper ({etaMinutes}p)
+                  </div>
+                  <div className="w-8 h-8 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-xl ring-4 ring-emerald-300/40">
+                    <Bike className="w-5 h-5" />
+                  </div>
+                </motion.div>
+
+                <div className="absolute top-4 right-8 flex flex-col items-center">
+                  <div className="bg-gray-900 text-white text-[10px] font-bold px-2 py-0.5 rounded-md shadow-md mb-1">
+                    Địa chỉ của bạn
+                  </div>
+                  <div className="w-6 h-6 rounded-full bg-rose-500 text-white flex items-center justify-center shadow-lg">
+                    <MapPin className="w-4 h-4" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Driver Profile Card */}
+              {currentOrder.driver && (
+                <div className="flex items-center justify-between p-4 rounded-2xl bg-gray-50 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700">
+                  <div className="flex items-center gap-3">
+                    <img 
+                      src={currentOrder.driver.avatar} 
+                      alt={currentOrder.driver.name}
+                      className="w-12 h-12 rounded-full object-cover ring-2 ring-orange-500" 
+                    />
+                    <div>
+                      <div className="flex items-center gap-1.5">
+                        <h4 className="text-sm font-extrabold text-gray-900 dark:text-white">
+                          {currentOrder.driver.name}
+                        </h4>
+                        <span className="flex items-center gap-0.5 text-xs text-amber-500 font-bold">
+                          <Star className="w-3 h-3 fill-amber-400" />
+                          {currentOrder.driver.rating}
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        {currentOrder.driver.vehicle}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <a
+                      href={`tel:${currentOrder.driver.phone}`}
+                      className="w-10 h-10 rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-white flex items-center justify-center shadow-md transition-colors"
+                      title="Gọi cho tài xế"
+                    >
+                      <Phone className="w-4 h-4" />
+                    </a>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* Order Details Accordion */}
+          <div className="border-t border-gray-100 dark:border-gray-800 pt-4 space-y-3">
+            <div className="flex justify-between items-center text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              <span>Chi tiết các món ({currentOrder.items?.length || 0})</span>
+              <span>Tổng: {formatCurrency(currentOrder.total)}</span>
+            </div>
+
+            <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
+              {currentOrder.items?.map((item, index) => (
+                <div 
+                  key={index}
+                  className="flex items-center justify-between text-xs py-1.5 border-b border-gray-50 dark:border-gray-800/50"
+                >
+                  <div className="flex items-center gap-2 truncate pr-2">
+                    <span className="font-bold text-orange-500">{item.quantity}x</span>
+                    <span className="text-gray-800 dark:text-gray-200 font-medium truncate">
+                      {item.name}
+                    </span>
+                  </div>
+                  <span className="font-bold text-gray-900 dark:text-white shrink-0">
                     {formatCurrency(item.totalPrice)}
                   </span>
                 </div>
               ))}
             </div>
-            <div className="pt-2 flex justify-between text-sm font-extrabold text-gray-900 dark:text-white border-t border-gray-200 dark:border-gray-700">
-              <span>Tổng thanh toán:</span>
-              <span className="text-orange-600 dark:text-orange-400">
-                {formatCurrency(currentOrder.total)}
+
+            {/* Destination Info */}
+            <div className="pt-2 flex items-start gap-2 text-xs text-gray-500 dark:text-gray-400">
+              <MapPin className="w-4 h-4 text-orange-500 shrink-0 mt-0.5" />
+              <span>
+                <strong>{isDineIn ? 'Bàn phục vụ:' : 'Địa chỉ giao:'}</strong> {currentOrder.customer?.address || 'Tại quán'}
               </span>
             </div>
           </div>
@@ -248,12 +308,17 @@ const OrderTrackingModal = () => {
         </div>
 
         {/* Footer */}
-        <div className="p-4 bg-gray-50 dark:bg-gray-800/90 border-t border-gray-100 dark:border-gray-800">
+        <div className="p-4 bg-gray-50 dark:bg-gray-800/60 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between">
+          <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+            <ShieldCheck className="w-4 h-4 text-emerald-500" />
+            <span>Món ăn được đảm bảo tươi ngon 100%</span>
+          </div>
+
           <button
             onClick={() => setIsTrackingOpen(false)}
-            className="w-full py-3 rounded-2xl bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-bold text-xs hover:bg-orange-600 dark:hover:bg-orange-500 dark:hover:text-white transition-all shadow-md"
+            className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-xs font-bold transition-all shadow-md"
           >
-            Đóng Trình Theo Dõi
+            Đã Hiểu
           </button>
         </div>
 

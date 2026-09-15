@@ -411,8 +411,11 @@ app.post('/api/orders', (req, res) => {
     const orderId = `GF-${Math.floor(100000 + Math.random() * 900000)}`;
     const now = new Date().toISOString();
     const userId = req.user ? req.user.id : null;
+    const orderType = req.body.orderType || req.body.customer?.orderType || 'delivery';
+    const tableNumber = req.body.tableNumber || req.body.customer?.tableNumber || null;
+    const isDineIn = orderType === 'dine_in';
 
-    const driverMock = {
+    const driverMock = isDineIn ? null : {
       name: 'Nguyễn Văn Hùng',
       phone: '0988.123.456',
       rating: 4.95,
@@ -425,8 +428,8 @@ app.post('/api/orders', (req, res) => {
       INSERT INTO orders (
         id, user_id, customer_name, customer_phone, customer_address, payment_method,
         notes, subtotal, delivery_fee, discount, tax, total, voucher_code, status,
-        estimated_time, driver, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'confirmed', '20-25 phút', ?, ?)
+        estimated_time, driver, order_type, table_number, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'confirmed', ?, ?, ?, ?, ?)
     `);
 
     insertOrder.run(
@@ -443,7 +446,10 @@ app.post('/api/orders', (req, res) => {
       tax || 0,
       total || 0,
       voucherCode || null,
-      JSON.stringify(driverMock),
+      isDineIn ? '10-15 phút' : '20-25 phút',
+      driverMock ? JSON.stringify(driverMock) : null,
+      orderType,
+      tableNumber,
       now
     );
 

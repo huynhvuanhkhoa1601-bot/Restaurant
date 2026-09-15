@@ -20,6 +20,7 @@ import Toast from './components/Toast';
 import UserProfileModal from './components/UserProfileModal';
 import OrderHistoryModal from './components/OrderHistoryModal';
 import WishlistModal from './components/WishlistModal';
+import TableQRModal from './components/TableQRModal';
 
 function App() {
   return (
@@ -72,6 +73,7 @@ function App() {
       <UserProfileModal />
       <OrderHistoryModal />
       <WishlistModal />
+      <TableQRModal />
 
     </div>
   );

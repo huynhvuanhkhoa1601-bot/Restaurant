@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { foods as initialFoods, vouchers as initialVouchers } from '../data/foods';
+import { restaurantTables } from '../data/tables';
 import { ordersAPI, foodsAPI, vouchersAPI } from '../services/api';
 import { supabase } from '../lib/supabase';
 
@@ -124,6 +125,34 @@ export const CartProvider = ({ children }) => {
   const [isOrderHistoryOpen, setIsOrderHistoryOpen] = useState(false);
   const [isWishlistOpen, setIsWishlistOpen] = useState(false);
 
+  // Quản lý Bàn Ăn & Gọi Món Tại Bàn
+  const [diningMode, setDiningMode] = useState('delivery'); // 'delivery' | 'dine_in'
+  const [selectedTable, setSelectedTable] = useState(null);
+  const [isTableQROpen, setIsTableQROpen] = useState(false);
+
+  // Tự động nhận diện bàn qua URL param: ?table=B03 hoặc ?ban=3
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const searchParams = new URLSearchParams(window.location.search);
+      const tableParam = searchParams.get('table') || searchParams.get('ban');
+      if (tableParam) {
+        const found = restaurantTables.find(
+          t => t.code.toLowerCase() === tableParam.toLowerCase() ||
+               t.id.toLowerCase() === tableParam.toLowerCase() ||
+               t.name.toLowerCase().includes(tableParam.toLowerCase())
+        );
+        if (found) {
+          setSelectedTable(found);
+          setDiningMode('dine_in');
+          setTimeout(() => {
+            showToast(`🎉 Chào mừng quý khách tại ${found.name} (${found.area})! Phí phục vụ tại bàn 0đ.`, 'success');
+          }, 600);
+        }
+      }
+    } catch (_) {}
+  }, []);
+
   // Toast notification system
   const [toast, setToast] = useState(null);
 
@@ -216,8 +245,11 @@ export const CartProvider = ({ children }) => {
   const cartSubtotal = cart.reduce((sum, item) => sum + item.totalPrice, 0);
   const totalItemsCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
-  // Delivery fee logic: Free if >= 200,000 VND or with FREESHIP voucher, else 25,000 VND
+  // Delivery fee logic: Free if >= 200,000 VND or with FREESHIP voucher, else 25,000 VND. Free (0đ) if dining at table!
   let deliveryFee = cartSubtotal > 0 ? (cartSubtotal >= 200000 ? 0 : 25000) : 0;
+  if (diningMode === 'dine_in') {
+    deliveryFee = 0;
+  }
 
   let voucherDiscount = 0;
   if (appliedVoucher && cartSubtotal > 0) {
@@ -311,6 +343,11 @@ export const CartProvider = ({ children }) => {
     const orderId = `GF-${Math.floor(100000 + Math.random() * 900000)}`;
     const now = new Date().toISOString();
 
+    const isDineIn = diningMode === 'dine_in' && selectedTable;
+    const finalAddress = isDineIn
+      ? `Dùng tại bàn: ${selectedTable.name} (${selectedTable.area})`
+      : (orderData.address || '');
+
     const newOrder = {
       orderId,
       createdAt: now,
@@ -320,10 +357,19 @@ export const CartProvider = ({ children }) => {
       discount: voucherDiscount,
       tax,
       total: cartTotal,
-      customer: orderData,
+      customer: {
+        ...orderData,
+        address: finalAddress,
+        orderType: diningMode,
+        tableNumber: selectedTable?.name || null,
+        tableArea: selectedTable?.area || null
+      },
+      orderType: diningMode,
+      tableNumber: selectedTable?.name || null,
+      tableArea: selectedTable?.area || null,
       status: 'confirmed',
-      estimatedTime: '20-25 phút',
-      driver: driverInfo
+      estimatedTime: isDineIn ? '10-15 phút' : '20-25 phút',
+      driver: isDineIn ? null : driverInfo
     };
 
     // 1. Lưu lên Supabase
@@ -334,7 +380,7 @@ export const CartProvider = ({ children }) => {
           id: orderId,
           customer_name: orderData.name || orderData.fullName || '',
           customer_phone: orderData.phone || '',
-          customer_address: orderData.address || '',
+          customer_address: finalAddress,
           payment_method: orderData.paymentMethod || 'cod',
           notes: orderData.note || orderData.notes || '',
           subtotal: cartSubtotal,
@@ -344,8 +390,10 @@ export const CartProvider = ({ children }) => {
           total: cartTotal,
           voucher_code: appliedVoucher?.code || null,
           status: 'confirmed',
-          estimated_time: '20-25 phút',
-          driver: driverInfo,
+          estimated_time: isDineIn ? '10-15 phút' : '20-25 phút',
+          driver: isDineIn ? null : driverInfo,
+          order_type: diningMode,
+          table_number: selectedTable?.name || null,
           created_at: now,
         });
 
@@ -379,7 +427,7 @@ export const CartProvider = ({ children }) => {
     // 2. Lưu lên backend SQLite (fallback)
     try {
       await ordersAPI.create({
-        customer: orderData,
+        customer: { ...orderData, address: finalAddress },
         items: cart,
         subtotal: cartSubtotal,
         deliveryFee,
@@ -387,7 +435,9 @@ export const CartProvider = ({ children }) => {
         tax,
         total: cartTotal,
         voucherCode: appliedVoucher?.code || null,
-        notes: orderData.note || ''
+        notes: orderData.note || '',
+        orderType: diningMode,
+        tableNumber: selectedTable?.name || null
       });
     } catch (_) {}
 
@@ -398,7 +448,9 @@ export const CartProvider = ({ children }) => {
         id: orderId,
         customerName: orderData.name || orderData.fullName || '',
         customerPhone: orderData.phone || '',
-        customerAddress: orderData.address || '',
+        customerAddress: finalAddress,
+        orderType: diningMode,
+        tableNumber: selectedTable?.name || null,
         items: cart,
         total: cartTotal,
         status: 'confirmed',
@@ -413,7 +465,7 @@ export const CartProvider = ({ children }) => {
     setIsCheckoutOpen(false);
     setIsTrackingOpen(true);
     playSound('success');
-    showToast('Đơn hàng đã được lưu thành công!', 'success');
+    showToast(isDineIn ? `Gọi món tại ${selectedTable.name} thành công!` : 'Đơn hàng đã được lưu thành công!', 'success');
   };
 
   // User state mock
@@ -501,6 +553,14 @@ export const CartProvider = ({ children }) => {
         setIsWishlistOpen,
         openWishlist: () => setIsWishlistOpen(true),
         closeWishlist: () => setIsWishlistOpen(false),
+        diningMode,
+        setDiningMode,
+        selectedTable,
+        setSelectedTable,
+        isTableQROpen,
+        setIsTableQROpen,
+        openTableQR: () => setIsTableQROpen(true),
+        closeTableQR: () => setIsTableQROpen(false),
       }}
     >
       {children}

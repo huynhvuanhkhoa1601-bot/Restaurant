@@ -21,7 +21,8 @@ import {
   Plus,
   ArrowRight,
   TrendingUp,
-  ReceiptText
+  ReceiptText,
+  QrCode
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCart } from '../context/CartContext';
@@ -85,6 +86,9 @@ const Header = () => {
     openProfile,
     openOrderHistory,
     openWishlist,
+    selectedTable,
+    diningMode,
+    openTableQR,
   } = useCart();
 
   const { currentUser, isLoggedIn, isAdmin, openLogin, logout } = useAuth();
@@ -240,6 +244,19 @@ const Header = () => {
                 className="text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/40 hover:bg-orange-100 dark:hover:bg-orange-900/50 px-2.5 py-1.5 xl:px-3 rounded-xl transition-all border border-orange-200 dark:border-orange-800/40 text-xs font-bold shrink-0"
               >
                 🍽️ Đặt Bàn Ngay
+              </button>
+              <button 
+                onClick={openTableQR}
+                className={`px-2.5 py-1.5 xl:px-3 rounded-xl transition-all border text-xs font-bold shrink-0 flex items-center gap-1.5 ${
+                  selectedTable
+                    ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-400/60 dark:border-emerald-700 text-emerald-600 dark:text-emerald-400 shadow-sm'
+                    : 'bg-gradient-to-r from-orange-500 to-rose-500 text-white border-transparent hover:opacity-95 shadow-md shadow-orange-500/20'
+                }`}
+                title={selectedTable ? `Đang gọi món tại ${selectedTable.name}. Bấm để đổi bàn hoặc quét lại` : 'Quét mã QR tại bàn để gọi món'}
+              >
+                {selectedTable && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />}
+                <QrCode className="w-3.5 h-3.5" />
+                <span>{selectedTable ? `Bàn: ${selectedTable.name}` : 'Quét Mã Bàn'}</span>
               </button>
             </nav>
 
@@ -776,6 +793,34 @@ const Header = () => {
           </div>
         </div>
 
+        {/* Dine-in Table Active Notice Bar */}
+        <AnimatePresence>
+          {selectedTable && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 text-white text-xs px-4 py-1.5 border-t border-emerald-400/30 flex items-center shadow-md overflow-hidden"
+            >
+              <div className="max-w-7xl mx-auto w-full flex items-center justify-between">
+                <div className="flex items-center gap-2 truncate">
+                  <span className="w-2 h-2 rounded-full bg-white animate-ping shrink-0" />
+                  <span className="truncate">
+                    🍽️ Quý khách đang chọn món cho <strong>{selectedTable.name}</strong> ({selectedTable.area}) • Phục vụ trực tiếp tại bàn (0đ phí ship)
+                  </span>
+                </div>
+                <button
+                  onClick={openTableQR}
+                  className="bg-white/20 hover:bg-white/30 text-white px-2.5 py-0.5 rounded-lg font-extrabold text-[11px] transition-all ml-2 shrink-0 flex items-center gap-1 backdrop-blur-sm"
+                >
+                  <QrCode className="w-3 h-3" />
+                  <span>Đổi Bàn / Quét Lại</span>
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* Mobile Navigation Drawer */}
         <AnimatePresence>
           {mobileMenuOpen && (
@@ -861,8 +906,15 @@ const Header = () => {
                   <span>📖 Về KenRestaurant</span>
                 </button>
                 <button
+                  onClick={() => { setMobileMenuOpen(false); openTableQR(); }}
+                  className="p-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold text-center shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 mt-2"
+                >
+                  <QrCode className="w-4 h-4" />
+                  <span>{selectedTable ? `Đang Ở ${selectedTable.name} (Đổi Bàn)` : '📱 Quét Mã Bàn Gọi Món'}</span>
+                </button>
+                <button
                   onClick={() => { setMobileMenuOpen(false); openReservation(); }}
-                  className="p-3 rounded-xl bg-orange-500 text-white font-bold text-center shadow-lg shadow-orange-500/30 mt-2"
+                  className="p-3 rounded-xl bg-orange-500 text-white font-bold text-center shadow-lg shadow-orange-500/30 mt-1"
                 >
                   🍽️ Đặt Bàn Ngay
                 </button>

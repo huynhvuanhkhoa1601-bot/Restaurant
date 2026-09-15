@@ -221,6 +221,11 @@ const OrderHistoryModal = () => {
                           <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full ${statusBadge.color}`}>
                             {statusBadge.label}
                           </span>
+                          {(order.tableNumber || (order.customerAddress && order.customerAddress.startsWith('Dùng tại bàn:'))) && (
+                            <span className="text-[11px] font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
+                              🍽️ {order.tableNumber || 'Tại Bàn'}
+                            </span>
+                          )}
                         </div>
                         <div className="flex items-center gap-1.5 text-xs text-gray-400 mt-1">
                           <Clock className="w-3.5 h-3.5" />

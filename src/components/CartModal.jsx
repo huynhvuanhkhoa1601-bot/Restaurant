@@ -12,7 +12,9 @@ import {
   Truck, 
   AlertCircle,
   Percent,
-  Sparkles
+  Sparkles,
+  QrCode,
+  Utensils
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { formatCurrency, vouchers } from '../data/foods';
@@ -33,7 +35,11 @@ const CartModal = () => {
     appliedVoucher,
     applyVoucher,
     removeVoucher,
-    openCheckout
+    openCheckout,
+    diningMode,
+    setDiningMode,
+    selectedTable,
+    openTableQR
   } = useCart();
 
   const [couponInput, setCouponInput] = useState('');
@@ -99,26 +105,102 @@ const CartModal = () => {
             </button>
           </div>
 
-          {/* Free Shipping Progress Indicator */}
+          {/* Dining Mode Toggle (Giao tận nơi vs Dùng tại bàn) */}
+          <div className="px-5 pt-3 pb-2.5 bg-gray-50/80 dark:bg-gray-800/60 border-b border-gray-100 dark:border-gray-800">
+            <div className="grid grid-cols-2 p-1 bg-gray-200/70 dark:bg-gray-700/60 rounded-xl text-xs font-bold">
+              <button
+                type="button"
+                onClick={() => setDiningMode('delivery')}
+                className={`py-1.5 px-2 rounded-lg flex items-center justify-center gap-1.5 transition-all ${
+                  diningMode === 'delivery'
+                    ? 'bg-white dark:bg-gray-850 text-orange-600 dark:text-orange-400 shadow-sm'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                }`}
+              >
+                <Truck className="w-3.5 h-3.5" />
+                <span>Giao Tận Nơi</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setDiningMode('dine_in');
+                  if (!selectedTable) openTableQR();
+                }}
+                className={`py-1.5 px-2 rounded-lg flex items-center justify-center gap-1.5 transition-all ${
+                  diningMode === 'dine_in'
+                    ? 'bg-white dark:bg-gray-850 text-emerald-600 dark:text-emerald-400 shadow-sm'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                }`}
+              >
+                <Utensils className="w-3.5 h-3.5" />
+                <span>{selectedTable ? `Bàn: ${selectedTable.name}` : 'Dùng Tại Bàn'}</span>
+              </button>
+            </div>
+
+            {/* Table status / prompt when in dine-in mode */}
+            {diningMode === 'dine_in' && (
+              <div className="mt-2">
+                {selectedTable ? (
+                  <div className="bg-emerald-50 dark:bg-emerald-950/40 p-2.5 rounded-xl border border-emerald-300 dark:border-emerald-800/60 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+                      <div className="text-[11px] text-gray-800 dark:text-gray-200 font-semibold">
+                        <strong className="text-emerald-700 dark:text-emerald-300">{selectedTable.name}</strong> • {selectedTable.area}
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={openTableQR}
+                      className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1"
+                    >
+                      <QrCode className="w-3 h-3" />
+                      <span>Đổi bàn</span>
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={openTableQR}
+                    className="w-full p-2 rounded-xl border border-dashed border-orange-400 bg-orange-50/60 dark:bg-orange-950/30 flex items-center justify-center gap-1.5 text-xs font-bold text-orange-600 dark:text-orange-400 hover:bg-orange-100 transition-all"
+                  >
+                    <QrCode className="w-3.5 h-3.5" />
+                    <span>Chưa chọn bàn • Bấm để quét QR hoặc chọn bàn</span>
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Free Shipping / Dine-in Indicator */}
           {cart.length > 0 && (
-            <div className="bg-orange-50/80 dark:bg-orange-950/40 p-4 border-b border-orange-100 dark:border-orange-900/30">
-              <div className="flex items-center justify-between text-xs font-bold text-gray-800 dark:text-gray-200 mb-2">
-                <span className="flex items-center gap-1.5 text-orange-600 dark:text-orange-400">
-                  <Truck className="w-4 h-4" />
-                  {remainingForFreeShip === 0 
-                    ? '🎉 Bạn đã đủ điều kiện Miễn Phí Giao Hàng!' 
-                    : `Mua thêm ${formatCurrency(remainingForFreeShip)} để được FREESHIP!`}
-                </span>
-                <span>{progressPercent}%</span>
-              </div>
-              <div className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                <motion.div
-                  initial={{ width: 0 }}
-                  animate={{ width: `${progressPercent}%` }}
-                  transition={{ duration: 0.5 }}
-                  className="h-full bg-gradient-to-r from-orange-500 to-amber-500 rounded-full"
-                />
-              </div>
+            <div className="bg-orange-50/80 dark:bg-orange-950/40 p-3.5 border-b border-orange-100 dark:border-orange-900/30">
+              {diningMode === 'dine_in' ? (
+                <div className="flex items-center gap-2 text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                  <Check className="w-4 h-4 text-emerald-500 shrink-0" />
+                  <span>Dùng tại bàn: Miễn phí hoàn toàn phí giao hàng (0đ)!</span>
+                </div>
+              ) : (
+                <>
+                  <div className="flex items-center justify-between text-xs font-bold text-gray-800 dark:text-gray-200 mb-1.5">
+                    <span className="flex items-center gap-1.5 text-orange-600 dark:text-orange-400">
+                      <Truck className="w-4 h-4" />
+                      {remainingForFreeShip === 0 
+                        ? '🎉 Bạn đã đủ điều kiện Miễn Phí Giao Hàng!' 
+                        : `Mua thêm ${formatCurrency(remainingForFreeShip)} để được FREESHIP!`}
+                    </span>
+                    <span>{progressPercent}%</span>
+                  </div>
+                  <div className="w-full h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: `${progressPercent}%` }}
+                      transition={{ duration: 0.5 }}
+                      className="h-full bg-gradient-to-r from-orange-500 to-amber-500 rounded-full"
+                    />
+                  </div>
+                </>
+              )}
             </div>
           )}
 

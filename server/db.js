@@ -159,6 +159,14 @@ export const initSchema = () => {
       FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
     );
   `);
+
+  // Migration an toàn bổ sung cột gọi món tại bàn nếu database đã tồn tại
+  try {
+    db.exec(`ALTER TABLE orders ADD COLUMN order_type TEXT DEFAULT 'delivery'`);
+  } catch (_) {}
+  try {
+    db.exec(`ALTER TABLE orders ADD COLUMN table_number TEXT`);
+  } catch (_) {}
 };
 
 // Gọi khởi tạo schema ngay khi nạp module
