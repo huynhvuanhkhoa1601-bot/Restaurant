@@ -368,7 +368,11 @@ export const CartProvider = ({ children }) => {
       tableNumber: selectedTable?.name || null,
       tableArea: selectedTable?.area || null,
       status: 'confirmed',
-      estimatedTime: isDineIn ? '10-15 phút' : '20-25 phút',
+      estimatedTime: isDineIn 
+        ? '10-15 phút' 
+        : (orderData.deliveryType === 'scheduled' && orderData.scheduledTime 
+            ? `Hẹn giao: ${orderData.scheduledTime}` 
+            : '20-25 phút'),
       driver: isDineIn ? null : driverInfo
     };
 
@@ -390,7 +394,11 @@ export const CartProvider = ({ children }) => {
           total: cartTotal,
           voucher_code: appliedVoucher?.code || null,
           status: 'confirmed',
-          estimated_time: isDineIn ? '10-15 phút' : '20-25 phút',
+          estimated_time: isDineIn 
+            ? '10-15 phút' 
+            : (orderData.deliveryType === 'scheduled' && orderData.scheduledTime 
+                ? `Hẹn giao: ${orderData.scheduledTime}` 
+                : '20-25 phút'),
           driver: isDineIn ? null : driverInfo,
           order_type: diningMode,
           table_number: selectedTable?.name || null,
@@ -468,13 +476,13 @@ export const CartProvider = ({ children }) => {
     showToast(isDineIn ? `Gọi món tại ${selectedTable.name} thành công!` : 'Đơn hàng đã được lưu thành công!', 'success');
   };
 
-  // User state mock
+  // User state mock (initially empty)
   const [currentUser, setCurrentUser] = useState({
-    name: 'Khách hàng Thân thiết',
-    email: 'khachhang@gourmetfeast.vn',
-    phone: '0912.345.678',
-    address: 'Toà nhà Landmark 81, 720A Điện Biên Phủ, P.22, Bình Thạnh, TP.HCM',
-    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80'
+    name: '',
+    email: '',
+    phone: '',
+    address: '',
+    avatar: ''
   });
 
   return (

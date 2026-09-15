@@ -20,9 +20,9 @@ export const siteConfig = {
     hotline: '0334756330',              // Số điện thoại hotline
     hotlineDisplay: '0334 756 330',     // Số điện thoại hiển thị đẹp mắt
     email: 'contact@kenrestaurant.vn',  // Email liên hệ
-    address: '133/50/4 Cống Lở, P.15, Q. Tân Bình, TP.HCM', // Địa chỉ nhà hàng
-    googleMapsEmbedUrl: 'https://maps.google.com/maps?q=133%2F50%2F4%20C%E1%BB%91ng%20L%E1%BB%9F%2C%20Ph%C6%B0%E1%BB%9Dng%2015%2C%20T%C3%A2n%20B%C3%ACnh%2C%20H%E1%BB%93%20Ch%C3%AD%20Minh&t=&z=16&ie=UTF8&iwloc=&output=embed',
-    googleMapsUrl: 'https://www.google.com/maps/search/?api=1&query=133/50/4+Cống+Lở,+Phường+15,+Tân+Bình,+Hồ+Chí+Minh',
+    address: 'Toà nhà Landmark 81, 720A Điện Biên Phủ, P.22, Bình Thạnh, TP.HCM', // Địa chỉ nhà hàng
+    googleMapsEmbedUrl: 'https://maps.google.com/maps?q=To%C3%A0%20nh%C3%A0%20Landmark%2081%2C%20720A%20%C4%90i%E1%BB%87n%20Bi%C3%AAn%20Ph%E1%BB%A7%2C%20P.22%2C%20B%C3%ACnh%20Th%E1%BA%A1nh%2C%20TP.HCM&t=&z=16&ie=UTF8&iwloc=&output=embed',
+    googleMapsUrl: 'https://www.google.com/maps/search/?api=1&query=To%C3%A0+nh%C3%A0+Landmark+81,+720A+%C4%90i%E1%BB%87n+Bi%C3%AAn+Ph%E1%BB%A7,+P.22,+B%C3%ACnh+Th%E1%BA%A1nh,+TP.HCM',
     openingHours: '08:00 - 23:30 mỗi ngày', // Giờ mở cửa
   },
 

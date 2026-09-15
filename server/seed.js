@@ -22,7 +22,7 @@ insertUser.run(
   'admin@kenrestaurant.vn',
   adminHash,
   '0334756330',
-  '133/50/4 Cống Lở, P.15, Q.Tân Bình, TP.HCM',
+  'Toà nhà Landmark 81, 720A Điện Biên Phủ, P.22, Bình Thạnh, TP.HCM',
   'admin',
   null,
   1,

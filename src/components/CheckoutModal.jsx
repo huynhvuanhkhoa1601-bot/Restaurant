@@ -14,7 +14,8 @@ import {
   ArrowRight,
   ChevronLeft,
   Utensils,
-  AlertCircle
+  AlertCircle,
+  Calendar
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useCart } from '../context/CartContext';
@@ -42,12 +43,12 @@ const CheckoutModal = () => {
   const [step, setStep] = useState(1); // 1: Info, 2: Payment
   const isDineIn = diningMode === 'dine_in';
   const [formData, setFormData] = useState({
-    name: currentUser.name || 'Nguyễn Hải Đăng',
-    phone: currentUser.phone || '0912.345.678',
-    address: currentUser.address || '720A Điện Biên Phủ, Phường 22, Quận Bình Thạnh, TP.HCM',
+    name: '',
+    phone: '',
+    address: '',
     note: '',
     deliveryType: 'now', // 'now' or 'scheduled'
-    scheduledTime: '12:30 Hôm nay',
+    scheduledTime: '',
     paymentMethod: 'vietqr' // 'cod', 'vietqr', 'card'
   });
 
@@ -237,8 +238,8 @@ const CheckoutModal = () => {
                         name="name"
                         value={formData.name}
                         onChange={handleChange}
-                        placeholder="VD: Anh Khoa (Bàn 01)"
-                        className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl pl-10 pr-4 py-3 text-xs sm:text-sm font-semibold outline-none focus:border-orange-500 text-gray-900 dark:text-white"
+                        placeholder="Nhập tên của bạn hoặc đại diện bàn"
+                        className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl pl-10 pr-4 py-3 text-xs sm:text-sm font-semibold outline-none focus:border-orange-500 text-gray-900 dark:text-white placeholder:text-gray-400"
                       />
                     </div>
                   </div>
@@ -255,8 +256,8 @@ const CheckoutModal = () => {
                         name="phone"
                         value={formData.phone}
                         onChange={handleChange}
-                        placeholder="VD: 0912.345.678"
-                        className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl pl-10 pr-4 py-3 text-xs sm:text-sm font-semibold outline-none focus:border-orange-500 text-gray-900 dark:text-white"
+                        placeholder="Nhập số điện thoại (tùy chọn)"
+                        className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl pl-10 pr-4 py-3 text-xs sm:text-sm font-semibold outline-none focus:border-orange-500 text-gray-900 dark:text-white placeholder:text-gray-400"
                       />
                     </div>
                   </div>
@@ -282,11 +283,11 @@ const CheckoutModal = () => {
                   {/* Delivery Timing Options */}
                   <div className="grid grid-cols-2 gap-3">
                     <div
-                      onClick={() => setFormData({ ...formData, deliveryType: 'now' })}
+                      onClick={() => setFormData(prev => ({ ...prev, deliveryType: 'now', scheduledTime: '' }))}
                       className={`p-3.5 rounded-2xl border-2 cursor-pointer transition-all ${
                         formData.deliveryType === 'now'
-                          ? 'border-orange-500 bg-orange-50/60 dark:bg-orange-950/40'
-                          : 'border-gray-200 dark:border-gray-700'
+                          ? 'border-orange-500 bg-orange-50/60 dark:bg-orange-950/40 shadow-sm'
+                          : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
                       }`}
                     >
                       <div className="flex items-center gap-2 text-sm font-bold text-gray-900 dark:text-white">
@@ -299,11 +300,11 @@ const CheckoutModal = () => {
                     </div>
 
                     <div
-                      onClick={() => setFormData({ ...formData, deliveryType: 'scheduled' })}
+                      onClick={() => setFormData(prev => ({ ...prev, deliveryType: 'scheduled' }))}
                       className={`p-3.5 rounded-2xl border-2 cursor-pointer transition-all ${
                         formData.deliveryType === 'scheduled'
-                          ? 'border-orange-500 bg-orange-50/60 dark:bg-orange-950/40'
-                          : 'border-gray-200 dark:border-gray-700'
+                          ? 'border-orange-500 bg-orange-50/60 dark:bg-orange-950/40 shadow-sm'
+                          : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
                       }`}
                     >
                       <div className="flex items-center gap-2 text-sm font-bold text-gray-900 dark:text-white">
@@ -315,6 +316,57 @@ const CheckoutModal = () => {
                       </p>
                     </div>
                   </div>
+
+                  {/* Scheduled Delivery Time Input when Hẹn Giờ Giao is chosen */}
+                  {formData.deliveryType === 'scheduled' && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="p-3.5 bg-amber-50/70 dark:bg-amber-950/30 rounded-2xl border border-amber-200 dark:border-amber-800/60 space-y-2.5"
+                    >
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-bold text-amber-900 dark:text-amber-200 flex items-center gap-1.5">
+                          <Clock className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                          <span>Thời gian hẹn giao hàng *</span>
+                        </label>
+                        <span className="text-[10px] text-amber-700 dark:text-amber-400 font-medium">
+                          (Nhà hàng chuẩn bị trước 30p)
+                        </span>
+                      </div>
+
+                      <div className="relative">
+                        <Calendar className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                        <input
+                          type="text"
+                          name="scheduledTime"
+                          value={formData.scheduledTime}
+                          onChange={handleChange}
+                          placeholder="Nhập giờ bạn muốn nhận (VD: 18:30 Tối nay, 11:30 Trưa mai...)"
+                          required={formData.deliveryType === 'scheduled'}
+                          className="w-full bg-white dark:bg-gray-800 border border-amber-300 dark:border-amber-700/80 rounded-xl pl-10 pr-4 py-2.5 text-xs sm:text-sm font-semibold outline-none focus:border-amber-500 text-gray-900 dark:text-white placeholder:text-gray-400 placeholder:font-normal"
+                        />
+                      </div>
+
+                      {/* Quick preset buttons */}
+                      <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
+                        <span className="text-[10px] font-bold text-gray-400">Chọn nhanh:</span>
+                        {['+45 phút', '+1 giờ', '+2 giờ', '18:30 Tối nay', '11:30 Trưa mai'].map((preset) => (
+                          <button
+                            key={preset}
+                            type="button"
+                            onClick={() => setFormData(prev => ({ ...prev, scheduledTime: preset }))}
+                            className={`px-2.5 py-1 rounded-lg text-[11px] font-bold border transition-all ${
+                              formData.scheduledTime === preset
+                                ? 'bg-amber-500 text-white border-amber-500 shadow-xs'
+                                : 'bg-white dark:bg-gray-800 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-800 hover:bg-amber-100 dark:hover:bg-amber-900/40'
+                            }`}
+                          >
+                            {preset}
+                          </button>
+                        ))}
+                      </div>
+                    </motion.div>
+                  )}
 
                   {/* Recipient Full Name */}
                   <div>
@@ -329,8 +381,8 @@ const CheckoutModal = () => {
                         value={formData.name}
                         onChange={handleChange}
                         required
-                        placeholder="VD: Nguyễn Hải Đăng"
-                        className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl pl-10 pr-4 py-3 text-xs sm:text-sm font-semibold outline-none focus:border-orange-500 text-gray-900 dark:text-white"
+                        placeholder="Nhập họ và tên người nhận hàng"
+                        className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl pl-10 pr-4 py-3 text-xs sm:text-sm font-semibold outline-none focus:border-orange-500 text-gray-900 dark:text-white placeholder:text-gray-400"
                       />
                     </div>
                   </div>
@@ -348,8 +400,8 @@ const CheckoutModal = () => {
                         value={formData.phone}
                         onChange={handleChange}
                         required
-                        placeholder="VD: 0912.345.678"
-                        className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl pl-10 pr-4 py-3 text-xs sm:text-sm font-semibold outline-none focus:border-orange-500 text-gray-900 dark:text-white"
+                        placeholder="Nhập số điện thoại (VD: 0912345678)"
+                        className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl pl-10 pr-4 py-3 text-xs sm:text-sm font-semibold outline-none focus:border-orange-500 text-gray-900 dark:text-white placeholder:text-gray-400"
                       />
                     </div>
                   </div>
@@ -367,8 +419,8 @@ const CheckoutModal = () => {
                         onChange={handleChange}
                         required
                         rows={2}
-                        placeholder="Số nhà, tên đường, toà nhà, phường, quận..."
-                        className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl pl-10 pr-4 py-3 text-xs sm:text-sm font-semibold outline-none focus:border-orange-500 text-gray-900 dark:text-white resize-none"
+                        placeholder="Nhập địa chỉ giao hàng (số phòng, căn hộ, toà nhà, đường, phường, quận...)"
+                        className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl pl-10 pr-4 py-3 text-xs sm:text-sm font-semibold outline-none focus:border-orange-500 text-gray-900 dark:text-white resize-none placeholder:text-gray-400"
                       />
                     </div>
                   </div>
@@ -383,8 +435,8 @@ const CheckoutModal = () => {
                       name="note"
                       value={formData.note}
                       onChange={handleChange}
-                      placeholder="VD: Gọi trước khi giao, gửi tại sảnh lễ tân..."
-                      className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl px-4 py-2.5 text-xs outline-none focus:border-orange-500 text-gray-900 dark:text-white"
+                      placeholder="VD: Gọi trước khi giao, gửi bảo vệ, bấm chuông..."
+                      className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl px-4 py-2.5 text-xs outline-none focus:border-orange-500 text-gray-900 dark:text-white placeholder:text-gray-400"
                     />
                   </div>
                 </div>
@@ -516,9 +568,20 @@ const CheckoutModal = () => {
           {step === 1 ? (
             <button
               onClick={() => {
-                if (!formData.name || !formData.phone || !formData.address) {
-                  alert('Vui lòng điền đầy đủ Tên, Số điện thoại và Địa chỉ nhận hàng!');
-                  return;
+                if (isDineIn) {
+                  if (!selectedTable) {
+                    openTableQR();
+                    return;
+                  }
+                } else {
+                  if (!formData.name?.trim() || !formData.phone?.trim() || !formData.address?.trim()) {
+                    alert('Vui lòng điền đầy đủ Họ tên, Số điện thoại và Địa chỉ nhận hàng!');
+                    return;
+                  }
+                  if (formData.deliveryType === 'scheduled' && !formData.scheduledTime?.trim()) {
+                    alert('Vui lòng chọn hoặc nhập thời gian bạn muốn nhận hàng!');
+                    return;
+                  }
                 }
                 setStep(2);
               }}

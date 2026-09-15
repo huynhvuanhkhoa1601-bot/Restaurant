@@ -984,7 +984,7 @@ const Header = () => {
                       1900.6886
                     </span>
                     <span className="hidden sm:inline">
-                      📍 133/50/4 Cống Lở, P.15, Q. Tân Bình
+                      📍 {siteConfig.contact.address}
                     </span>
                   </div>
                 </div>
