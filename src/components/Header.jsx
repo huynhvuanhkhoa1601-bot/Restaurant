@@ -212,58 +212,34 @@ const Header = () => {
               </div>
             </a>
 
-            {/* Desktop Navigation Links */}
-            <nav className="hidden xl:flex items-center gap-4 2xl:gap-6 text-xs xl:text-sm font-semibold text-gray-700 dark:text-gray-300 shrink-0">
-              <button 
-                onClick={() => scrollToSection('menu')}
-                className="hover:text-orange-500 dark:hover:text-orange-400 transition-colors flex items-center gap-1 shrink-0"
-              >
-                <span>Thực Đơn</span>
-                <Flame className="w-3.5 h-3.5 text-orange-500 animate-bounce-subtle" />
-              </button>
-              <button 
-                onClick={() => scrollToSection('promotions')}
-                className="hover:text-orange-500 dark:hover:text-orange-400 transition-colors shrink-0"
-              >
-                Khuyến Mãi
-              </button>
-              <button 
-                onClick={() => scrollToSection('reviews')}
-                className="hover:text-orange-500 dark:hover:text-orange-400 transition-colors shrink-0"
-              >
-                Đánh Giá
-              </button>
-              <button 
-                onClick={() => scrollToSection('story')}
-                className="hover:text-orange-500 dark:hover:text-orange-400 transition-colors shrink-0 hidden 2xl:block"
-              >
-                Về Chúng Tôi
-              </button>
-              <button 
-                onClick={openReservation}
-                className="text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/40 hover:bg-orange-100 dark:hover:bg-orange-900/50 px-2.5 py-1.5 xl:px-3 rounded-xl transition-all border border-orange-200 dark:border-orange-800/40 text-xs font-bold shrink-0"
-              >
-                🍽️ Đặt Bàn Ngay
-              </button>
-              <button 
-                onClick={openTableQR}
-                className={`px-2.5 py-1.5 xl:px-3 rounded-xl transition-all border text-xs font-bold shrink-0 flex items-center gap-1.5 ${
-                  selectedTable
-                    ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-400/60 dark:border-emerald-700 text-emerald-600 dark:text-emerald-400 shadow-sm'
-                    : 'bg-gradient-to-r from-orange-500 to-rose-500 text-white border-transparent hover:opacity-95 shadow-md shadow-orange-500/20'
-                }`}
-                title={selectedTable ? `Đang gọi món tại ${selectedTable.name}. Bấm để đổi bàn hoặc quét lại` : 'Quét mã QR tại bàn để gọi món'}
-              >
-                {selectedTable && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />}
-                <QrCode className="w-3.5 h-3.5" />
-                <span>{selectedTable ? `Bàn: ${selectedTable.name}` : 'Quét Mã Bàn'}</span>
-              </button>
-            </nav>
+            {/* 3-Dash Menu Button ("☰ Danh Mục") */}
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className={`px-3 py-2 rounded-2xl flex items-center gap-2 text-xs sm:text-sm font-bold transition-all border shrink-0 ${
+                mobileMenuOpen
+                  ? 'bg-orange-500 text-white border-orange-500 shadow-md shadow-orange-500/20 ring-2 ring-orange-400/30'
+                  : 'bg-gray-100/90 dark:bg-gray-800/90 text-gray-700 dark:text-gray-200 border-gray-200/80 dark:border-gray-700 hover:border-orange-400 hover:text-orange-500'
+              }`}
+              title="Khám phá toàn bộ danh mục & chức năng (Menu 3 dấu gạch)"
+            >
+              {mobileMenuOpen ? <X className="w-4 h-4" /> : <MenuIcon className="w-4 h-4 text-orange-500" />}
+              <span className="font-extrabold hidden sm:inline">Danh Mục</span>
+              <span className="text-[10px] bg-orange-100 dark:bg-orange-950 text-orange-600 dark:text-orange-300 px-1.5 py-0.5 rounded-full font-black">☰</span>
+            </button>
 
-            {/* Search Bar with Live Autocomplete */}
+            {/* Quick Link - only on extra wide 2xl screens */}
+            <button 
+              onClick={() => scrollToSection('menu')}
+              className="hover:text-orange-500 dark:hover:text-orange-400 transition-colors hidden 2xl:flex items-center gap-1 shrink-0 text-xs font-bold text-gray-700 dark:text-gray-300"
+            >
+              <span>Thực Đơn</span>
+              <Flame className="w-3.5 h-3.5 text-orange-500 animate-bounce-subtle" />
+            </button>
+
+            {/* Search Bar with Live Autocomplete - Rộng rãi, không bị đè ép */}
             <div 
               ref={searchContainerRef} 
-              className="relative flex-1 min-w-[170px] max-w-xs md:max-w-sm xl:max-w-md hidden sm:block"
+              className="relative flex-1 min-w-[170px] max-w-sm sm:max-w-md xl:max-w-lg hidden sm:block"
             >
               <div className="relative group">
                 <input
@@ -567,37 +543,43 @@ const Header = () => {
             {/* Right Action Icons & Controls */}
             <div className="flex items-center gap-2 sm:gap-2.5">
               
-              {/* Sound Toggle */}
-              <button
-                onClick={toggleSound}
-                title={soundEnabled ? "Tắt âm thanh tương tác" : "Bật âm thanh tương tác"}
-                className="p-2 sm:p-2.5 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors hidden sm:flex"
-              >
-                {soundEnabled ? (
-                  <Volume2 className="w-4 h-4 text-orange-500" />
-                ) : (
-                  <VolumeX className="w-4 h-4 text-gray-400" />
-                )}
-              </button>
+              {/* Table Indicator Pill if table is selected */}
+              {selectedTable ? (
+                <button
+                  onClick={openTableQR}
+                  className="px-2.5 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 text-emerald-600 dark:text-emerald-400 text-xs font-bold flex items-center gap-1.5 hover:bg-emerald-100 transition-all shrink-0"
+                  title={`Đang dùng món tại ${selectedTable.name}. Bấm để đổi bàn`}
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
+                  <QrCode className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Bàn:</span>
+                  <span>{selectedTable.code}</span>
+                </button>
+              ) : (
+                <button
+                  onClick={openTableQR}
+                  className="hidden 2xl:flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/40 border border-orange-200 dark:border-orange-800 hover:bg-orange-100 transition-all shrink-0"
+                  title="Gọi món tại bàn qua quét mã QR"
+                >
+                  <QrCode className="w-3.5 h-3.5" />
+                  <span>Quét Bàn</span>
+                </button>
+              )}
 
-              {/* Dark / Light Mode Toggle */}
+              {/* Quick Reservation Button (visible on wide screens) */}
               <button
-                onClick={toggleDarkMode}
-                title={darkMode ? "Chuyển sang giao diện Sáng" : "Chuyển sang giao diện Tối"}
-                className="p-2 sm:p-2.5 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-300"
+                onClick={openReservation}
+                className="hidden xl:flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/40 border border-orange-200 dark:border-orange-800 hover:bg-orange-100 transition-all shrink-0"
+                title="Đặt bàn tiệc trước tại KenRestaurant"
               >
-                {darkMode ? (
-                  <Sun className="w-4 h-4 sm:w-5 sm:h-5 text-amber-400 animate-spin-slow" />
-                ) : (
-                  <Moon className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600" />
-                )}
+                <span>🍽️ Đặt Bàn</span>
               </button>
 
               {/* Wishlist Button */}
               <button
-                onClick={() => scrollToSection('menu')}
+                onClick={openWishlist}
                 title="Món ăn yêu thích"
-                className="relative p-2 sm:p-2.5 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors hidden md:flex"
+                className="relative p-2 sm:p-2.5 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors hidden md:flex shrink-0"
               >
                 <Heart className={`w-4 h-4 sm:w-5 sm:h-5 ${wishlist.length > 0 ? 'text-rose-500 fill-rose-500' : ''}`} />
                 {wishlist.length > 0 && (
@@ -739,12 +721,12 @@ const Header = () => {
               )}
 
 
-              {/* Cart Drawer Trigger Button */}
+              {/* Cart Drawer Trigger Button - Luôn hiển thị đầy đủ, không bị đè */}
               <motion.button
                 whileHover={{ scale: 1.03 }}
                 whileTap={{ scale: 0.97 }}
                 onClick={openCart}
-                className="relative flex items-center gap-2 bg-gradient-to-r from-orange-500 via-orange-600 to-amber-500 text-white px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-2xl font-bold text-xs sm:text-sm shadow-lg shadow-orange-500/30 hover:shadow-orange-500/50 transition-all duration-300"
+                className="relative flex items-center gap-2 bg-gradient-to-r from-orange-500 via-orange-600 to-amber-500 text-white px-3 py-2 sm:px-4 sm:py-2.5 rounded-2xl font-bold text-xs sm:text-sm shadow-lg shadow-orange-500/30 hover:shadow-orange-500/50 transition-all duration-300 shrink-0"
               >
                 <div className="relative">
                   <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -758,14 +740,6 @@ const Header = () => {
                   {totalItemsCount > 0 ? formatCurrency(cartSubtotal) : 'Giỏ hàng'}
                 </span>
               </motion.button>
-
-              {/* Mobile Menu Button */}
-              <button
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="p-2 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 xl:hidden"
-              >
-                {mobileMenuOpen ? <X className="w-6 h-6" /> : <MenuIcon className="w-6 h-6" />}
-              </button>
 
             </div>
           </div>
@@ -821,112 +795,200 @@ const Header = () => {
           )}
         </AnimatePresence>
 
-        {/* Mobile Navigation Drawer */}
+        {/* Universal 3-Dash Menu Dropdown Panel (Hiển thị khoa học trên mọi màn hình) */}
         <AnimatePresence>
           {mobileMenuOpen && (
             <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              className="xl:hidden border-t border-gray-200 dark:border-gray-800 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl px-4 py-4 mt-2 shadow-2xl"
+              initial={{ opacity: 0, y: -10, height: 0 }}
+              animate={{ opacity: 1, y: 0, height: 'auto' }}
+              exit={{ opacity: 0, y: -10, height: 0 }}
+              transition={{ duration: 0.25 }}
+              className="border-t border-gray-200 dark:border-gray-800 bg-white/95 dark:bg-gray-900/95 backdrop-blur-2xl px-4 sm:px-6 lg:px-8 py-5 shadow-2xl overflow-hidden"
             >
-              <div className="flex flex-col gap-2 font-semibold text-gray-700 dark:text-gray-200">
+              <div className="max-w-7xl mx-auto space-y-4">
+                
+                {/* Account card if logged in */}
                 {isLoggedIn && (
-                  <div className="p-3 bg-orange-50 dark:bg-orange-950/30 rounded-2xl mb-2 flex items-center justify-between border border-orange-200/50 dark:border-orange-800/40">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-full bg-orange-500 text-white font-bold flex items-center justify-center text-xs">
+                  <div className="p-3.5 bg-gradient-to-r from-orange-500/10 via-amber-500/10 to-transparent rounded-2xl flex flex-wrap items-center justify-between gap-3 border border-orange-200/60 dark:border-orange-800/40">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-orange-500 text-white font-black flex items-center justify-center text-sm shadow-md">
                         {currentUser.name?.charAt(0).toUpperCase()}
                       </div>
                       <div>
-                        <p className="text-xs font-bold text-gray-900 dark:text-white">{currentUser.name}</p>
-                        <p className="text-[10px] text-gray-400">{currentUser.email}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="text-xs sm:text-sm font-bold text-gray-900 dark:text-white">{currentUser.name}</p>
+                          <span className="text-[10px] font-bold bg-orange-100 dark:bg-orange-950 text-orange-600 px-2 py-0.5 rounded-full">
+                            {isAdmin ? '👑 Quản Trị Viên' : '✨ Khách Hàng'}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-gray-500 dark:text-gray-400">{currentUser.email}</p>
                       </div>
                     </div>
-                    <span className="text-[10px] font-bold bg-orange-100 text-orange-600 px-2 py-0.5 rounded-full">
-                      {isAdmin ? 'Quản Trị' : 'Khách Hàng'}
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => { setMobileMenuOpen(false); openProfile(); }}
+                        className="px-3 py-1.5 rounded-xl bg-white dark:bg-gray-800 text-xs font-bold text-gray-700 dark:text-gray-200 hover:bg-orange-50 border border-gray-200 dark:border-gray-700"
+                      >
+                        👤 Hồ sơ
+                      </button>
+                      <button
+                        onClick={() => { setMobileMenuOpen(false); openOrderHistory(); }}
+                        className="px-3 py-1.5 rounded-xl bg-white dark:bg-gray-800 text-xs font-bold text-emerald-600 hover:bg-emerald-50 border border-emerald-200 dark:border-emerald-800"
+                      >
+                        📦 Đơn hàng
+                      </button>
+                      <button
+                        onClick={() => { setMobileMenuOpen(false); logout(); }}
+                        className="px-3 py-1.5 rounded-xl text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/50 text-xs font-bold"
+                      >
+                        Đăng xuất
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Main Navigation 4-Block Grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <button
+                    onClick={() => { setMobileMenuOpen(false); scrollToSection('menu'); }}
+                    className="p-3.5 rounded-2xl bg-orange-50/70 dark:bg-orange-950/40 border border-orange-200/60 dark:border-orange-900/40 hover:bg-orange-100 dark:hover:bg-orange-900/50 text-left transition-all group"
+                  >
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-xl">🍕</span>
+                      <span className="text-[10px] font-bold bg-orange-500 text-white px-1.5 py-0.5 rounded-full">24+ Món</span>
+                    </div>
+                    <div className="font-extrabold text-xs sm:text-sm text-gray-900 dark:text-white group-hover:text-orange-500">
+                      Thực Đơn Món Ngon
+                    </div>
+                    <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 truncate">
+                      Món Á - Âu chuẩn vị 5 sao
+                    </p>
+                  </button>
+
+                  <button
+                    onClick={() => { setMobileMenuOpen(false); scrollToSection('promotions'); }}
+                    className="p-3.5 rounded-2xl bg-amber-50/70 dark:bg-amber-950/40 border border-amber-200/60 dark:border-amber-900/40 hover:bg-amber-100 dark:hover:bg-amber-900/50 text-left transition-all group"
+                  >
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-xl">🎁</span>
+                      <span className="text-[10px] font-bold bg-amber-500 text-white px-1.5 py-0.5 rounded-full">Ưu Đãi</span>
+                    </div>
+                    <div className="font-extrabold text-xs sm:text-sm text-gray-900 dark:text-white group-hover:text-amber-500">
+                      Voucher &amp; Khuyến Mãi
+                    </div>
+                    <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 truncate">
+                      Giảm 50k &amp; Miễn phí ship
+                    </p>
+                  </button>
+
+                  <button
+                    onClick={() => { setMobileMenuOpen(false); scrollToSection('reviews'); }}
+                    className="p-3.5 rounded-2xl bg-emerald-50/70 dark:bg-emerald-950/40 border border-emerald-200/60 dark:border-emerald-900/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 text-left transition-all group"
+                  >
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-xl">⭐</span>
+                      <span className="text-[10px] font-bold bg-emerald-600 text-white px-1.5 py-0.5 rounded-full">4.9★</span>
+                    </div>
+                    <div className="font-extrabold text-xs sm:text-sm text-gray-900 dark:text-white group-hover:text-emerald-500">
+                      Đánh Giá Khách Hàng
+                    </div>
+                    <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 truncate">
+                      Hàng ngàn thực khách tin chọn
+                    </p>
+                  </button>
+
+                  <button
+                    onClick={() => { setMobileMenuOpen(false); scrollToSection('story'); }}
+                    className="p-3.5 rounded-2xl bg-rose-50/70 dark:bg-rose-950/40 border border-rose-200/60 dark:border-rose-900/40 hover:bg-rose-100 dark:hover:bg-rose-900/50 text-left transition-all group"
+                  >
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-xl">📖</span>
+                      <span className="text-[10px] font-bold bg-rose-500 text-white px-1.5 py-0.5 rounded-full">Ken</span>
+                    </div>
+                    <div className="font-extrabold text-xs sm:text-sm text-gray-900 dark:text-white group-hover:text-rose-500">
+                      Về KenRestaurant
+                    </div>
+                    <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 truncate">
+                      Sứ mệnh ẩm thực đỉnh cao
+                    </p>
+                  </button>
+                </div>
+
+                {/* Action Shortcuts: Gọi món quét mã bàn & Đặt bàn tiệc */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                  <button
+                    onClick={() => { setMobileMenuOpen(false); openTableQR(); }}
+                    className="p-3.5 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold flex items-center justify-between shadow-md hover:brightness-105 transition-all"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center">
+                        <QrCode className="w-5 h-5" />
+                      </div>
+                      <div className="text-left">
+                        <div className="text-xs sm:text-sm font-black">
+                          {selectedTable ? `Đang Ở ${selectedTable.name} (Bấm Để Đổi Bàn)` : '📱 Gọi Món Quét Mã Tại Bàn'}
+                        </div>
+                        <div className="text-[11px] text-emerald-100">
+                          Phục vụ tại bàn • 0đ phí giao hàng
+                        </div>
+                      </div>
+                    </div>
+                    <ArrowRight className="w-4 h-4 shrink-0" />
+                  </button>
+
+                  <button
+                    onClick={() => { setMobileMenuOpen(false); openReservation(); }}
+                    className="p-3.5 rounded-2xl bg-gradient-to-r from-orange-500 to-rose-500 text-white font-bold flex items-center justify-between shadow-md hover:brightness-105 transition-all"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center">
+                        <UtensilsCrossed className="w-5 h-5" />
+                      </div>
+                      <div className="text-left">
+                        <div className="text-xs sm:text-sm font-black">
+                          🍽️ Đặt Bàn Tiệc Ngay
+                        </div>
+                        <div className="text-[11px] text-orange-100">
+                          Giữ chỗ 1 phút • Tặng kèm món tráng miệng
+                        </div>
+                      </div>
+                    </div>
+                    <ArrowRight className="w-4 h-4 shrink-0" />
+                  </button>
+                </div>
+
+                {/* Bottom Bar: Utilities (Sound, Dark mode) & Contact info */}
+                <div className="flex flex-wrap items-center justify-between pt-3 border-t border-gray-200 dark:border-gray-800 text-xs text-gray-500 dark:text-gray-400 gap-3">
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={toggleSound}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 font-semibold transition-colors"
+                    >
+                      {soundEnabled ? <Volume2 className="w-3.5 h-3.5 text-orange-500" /> : <VolumeX className="w-3.5 h-3.5" />}
+                      <span>{soundEnabled ? 'Âm thanh: Bật' : 'Âm thanh: Tắt'}</span>
+                    </button>
+
+                    <button
+                      onClick={toggleDarkMode}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 font-semibold transition-colors"
+                    >
+                      {darkMode ? <Sun className="w-3.5 h-3.5 text-amber-400" /> : <Moon className="w-3.5 h-3.5 text-gray-500" />}
+                      <span>{darkMode ? 'Giao diện: Tối' : 'Giao diện: Sáng'}</span>
+                    </button>
+                  </div>
+
+                  <div className="flex items-center gap-3 text-[11px]">
+                    <span className="flex items-center gap-1 font-semibold text-orange-600 dark:text-orange-400">
+                      <PhoneCall className="w-3.5 h-3.5" />
+                      1900.6886
+                    </span>
+                    <span className="hidden sm:inline">
+                      📍 133/50/4 Cống Lở, P.15, Q. Tân Bình
                     </span>
                   </div>
-                )}
+                </div>
 
-                {isLoggedIn && (
-                  <div className="grid grid-cols-3 gap-1.5 mb-2">
-                    <button
-                      onClick={() => { setMobileMenuOpen(false); openProfile(); }}
-                      className="p-2 rounded-xl bg-gray-100 dark:bg-gray-800 text-[11px] font-bold text-center flex flex-col items-center gap-1"
-                    >
-                      <User className="w-4 h-4 text-orange-500" />
-                      <span>Hồ sơ</span>
-                    </button>
-                    <button
-                      onClick={() => { setMobileMenuOpen(false); openOrderHistory(); }}
-                      className="p-2 rounded-xl bg-gray-100 dark:bg-gray-800 text-[11px] font-bold text-center flex flex-col items-center gap-1"
-                    >
-                      <ReceiptText className="w-4 h-4 text-emerald-500" />
-                      <span>Lịch sử</span>
-                    </button>
-                    <button
-                      onClick={() => { setMobileMenuOpen(false); openWishlist(); }}
-                      className="p-2 rounded-xl bg-gray-100 dark:bg-gray-800 text-[11px] font-bold text-center flex flex-col items-center gap-1 relative"
-                    >
-                      <Heart className="w-4 h-4 text-rose-500" />
-                      <span>Yêu thích</span>
-                      {wishlist.length > 0 && (
-                        <span className="absolute top-1 right-2 bg-rose-500 text-white text-[9px] w-3.5 h-3.5 rounded-full flex items-center justify-center">
-                          {wishlist.length}
-                        </span>
-                      )}
-                    </button>
-                  </div>
-                )}
-
-                <button
-                  onClick={() => scrollToSection('menu')}
-                  className="flex items-center justify-between p-2.5 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 text-left"
-                >
-                  <span>🔥 Thực đơn món ngon</span>
-                  <span className="text-xs bg-orange-100 dark:bg-orange-900/40 text-orange-600 px-2 py-0.5 rounded-full font-bold">24+ Món</span>
-                </button>
-                <button
-                  onClick={() => scrollToSection('promotions')}
-                  className="flex items-center justify-between p-2.5 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 text-left"
-                >
-                  <span>🎁 Voucher &amp; Ưu đãi</span>
-                  <span className="text-xs bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 px-2 py-0.5 rounded-full font-bold">Giảm 50k</span>
-                </button>
-                <button
-                  onClick={() => scrollToSection('reviews')}
-                  className="flex items-center justify-between p-2.5 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 text-left"
-                >
-                  <span>⭐ Đánh giá khách hàng</span>
-                </button>
-                <button
-                  onClick={() => scrollToSection('story')}
-                  className="flex items-center justify-between p-2.5 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 text-left"
-                >
-                  <span>📖 Về KenRestaurant</span>
-                </button>
-                <button
-                  onClick={() => { setMobileMenuOpen(false); openTableQR(); }}
-                  className="p-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold text-center shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 mt-2"
-                >
-                  <QrCode className="w-4 h-4" />
-                  <span>{selectedTable ? `Đang Ở ${selectedTable.name} (Đổi Bàn)` : '📱 Quét Mã Bàn Gọi Món'}</span>
-                </button>
-                <button
-                  onClick={() => { setMobileMenuOpen(false); openReservation(); }}
-                  className="p-3 rounded-xl bg-orange-500 text-white font-bold text-center shadow-lg shadow-orange-500/30 mt-1"
-                >
-                  🍽️ Đặt Bàn Ngay
-                </button>
-
-                {isLoggedIn && (
-                  <button
-                    onClick={() => { setMobileMenuOpen(false); logout(); }}
-                    className="p-2.5 rounded-xl text-rose-600 dark:text-rose-400 font-bold text-xs flex items-center justify-center gap-1.5 hover:bg-rose-50 dark:hover:bg-rose-950/40 mt-1"
-                  >
-                    <LogOut className="w-3.5 h-3.5" /> Đăng xuất
-                  </button>
-                )}
               </div>
             </motion.div>
           )}
