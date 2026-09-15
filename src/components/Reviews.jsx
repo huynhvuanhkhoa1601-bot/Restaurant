@@ -276,19 +276,23 @@ const Reviews = () => {
 
     // 1. Lưu đánh giá lên Supabase
     try {
+      const reviewPayload = {
+        id: `rev-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+        user_id: currentUser?.id || null,
+        user_name: created.name,
+        avatar: created.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150',
+        rating: Number(created.rating) || 5,
+        dish_name: created.dish || 'Món ăn tại KenRestaurant',
+        comment: created.comment || '',
+        food_id: null, // tránh lỗi foreign key khi món chưa có trên bảng foods Supabase
+        verified: true,
+        likes: 0,
+        created_at: new Date().toISOString()
+      };
+
       const { error } = await supabase
         .from('reviews')
-        .insert({
-          user_id: currentUser?.id || null,
-          user_name: created.name,
-          user_email: currentUser?.email || null,
-          user_phone: currentUser?.phone || null,
-          user_avatar: created.avatar,
-          rating: created.rating,
-          comment: created.comment,
-          food_id: foods.find(f => f.name === created.dish)?.id || null,
-          food_name: created.dish,
-        });
+        .insert(reviewPayload);
 
       if (error) {
         console.warn('⚠️ Lưu đánh giá lên Supabase thất bại:', error.message);

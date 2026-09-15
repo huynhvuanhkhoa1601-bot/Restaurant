@@ -4,13 +4,76 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍔</text></svg>" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>KenRestaurant - Đặt Đồ Ăn Trực Tuyến &amp; Ẩm Thực Thượng Hạng</title>
-    <meta name="description" content="Trải nghiệm ẩm thực thượng hạng và dịch vụ giao đồ ăn siêu tốc 20 phút. Hơn 100+ món ngon chuẩn vị với ưu đãi freeship hấp dẫn mỗi ngày." />
-    
+    <title>KenRestaurant - Nhà Hàng & Đặt Món Trực Tuyến Landmark 81</title>
+    <meta name="description" content="Trải nghiệm ẩm thực thượng hạng tại Toà nhà Landmark 81, 720A Điện Biên Phủ, P.22, Bình Thạnh, TP.HCM. Đặt bàn, gọi món tại bàn quét mã QR, giao đồ ăn siêu tốc và menu đa dạng." />
+    <meta name="keywords" content="KenRestaurant, nhà hàng Landmark 81, đặt món trực tuyến, quét mã QR gọi món tại bàn, đặt bàn nhà hàng, ẩm thực thượng hạng Sài Gòn" />
+    <meta name="author" content="KenRestaurant" />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="https://kenrestaurant.vn" />
+
+    <!-- Open Graph / Facebook / Zalo -->
+    <meta property="og:type" content="restaurant" />
+    <meta property="og:url" content="https://kenrestaurant.vn" />
+    <meta property="og:title" content="KenRestaurant - Ẩm Thực Thượng Hạng Landmark 81" />
+    <meta property="og:description" content="Đặt bàn, quét mã QR tại bàn, giao món nhanh tại Toà nhà Landmark 81, 720A Điện Biên Phủ, P.22, Bình Thạnh, TP.HCM." />
+    <meta property="og:image" content="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=1200&q=80" />
+    <meta property="og:locale" content="vi_VN" />
+    <meta property="og:site_name" content="KenRestaurant" />
+
+    <!-- Twitter Cards -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="KenRestaurant - Ẩm Thực Thượng Hạng Landmark 81" />
+    <meta name="twitter:description" content="Đặt bàn và gọi món online tiện lợi tại Toà nhà Landmark 81, Bình Thạnh, TP.HCM." />
+    <meta name="twitter:image" content="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=1200&q=80" />
+
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#f97316" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="KenRestaurant" />
+    <link rel="manifest" href="/manifest.json" />
+
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400;1,600&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
+
+    <!-- Schema.org JSON-LD for Restaurant SEO -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Restaurant",
+      "name": "KenRestaurant",
+      "image": "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=1200&q=80",
+      "telephone": "+84901234567",
+      "email": "contact@kenrestaurant.vn",
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": "Toà nhà Landmark 81, 720A Điện Biên Phủ, Phường 22",
+        "addressLocality": "Quận Bình Thạnh",
+        "addressRegion": "Thành phố Hồ Chí Minh",
+        "addressCountry": "VN"
+      },
+      "geo": {
+        "@type": "GeoCoordinates",
+        "latitude": 10.7951,
+        "longitude": 106.7218
+      },
+      "url": "https://kenrestaurant.vn",
+      "servesCuisine": ["Vietnamese", "Asian", "European", "Fusion"],
+      "priceRange": "$$",
+      "openingHoursSpecification": [
+        {
+          "@type": "OpeningHoursSpecification",
+          "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
+          "opens": "07:00",
+          "closes": "23:00"
+        }
+      ],
+      "acceptsReservations": "True"
+    }
+    </script>
   </head>
   <body class="bg-[#FAF9F6] dark:bg-[#0B0F19] text-gray-800 dark:text-gray-100 font-sans antialiased selection:bg-orange-500 selection:text-white transition-colors duration-300">
     <div id="root"></div>

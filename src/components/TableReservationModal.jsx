@@ -40,20 +40,44 @@ const TableReservationModal = () => {
 
     // 1. Lưu thông tin đặt bàn lên Supabase
     try {
-      const { error } = await supabase
+      const resId = `res-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+      
+      // Thử insert với chuẩn cột Supabase hiện tại
+      let { error } = await supabase
         .from('reservations')
         .insert({
+          id: resId,
           user_id: currentUser?.id || null,
           customer_name: bookingData.name,
           email: bookingData.email || currentUser?.email || '',
-          phone: bookingData.phone,
-          guests: Number(bookingData.guests),
-          date: bookingData.date,
-          time: bookingData.time,
-          table_type: bookingData.seatingArea,
+          customer_phone: bookingData.phone,
+          guests_count: Number(bookingData.guests) || 2,
+          reservation_date: bookingData.date,
+          reservation_time: bookingData.time,
+          table_type: bookingData.seatingArea || 'Bàn tiêu chuẩn',
           notes: bookingData.specialRequest || '',
           status: 'pending',
+          created_at: new Date().toISOString()
         });
+
+      // Nếu bảng đã được migration sang schema mới (phone, date, time, guests)
+      if (error && error.message?.includes('Could not find')) {
+        const retryRes = await supabase
+          .from('reservations')
+          .insert({
+            user_id: currentUser?.id || null,
+            customer_name: bookingData.name,
+            email: bookingData.email || currentUser?.email || '',
+            phone: bookingData.phone,
+            guests: Number(bookingData.guests) || 2,
+            date: bookingData.date,
+            time: bookingData.time,
+            table_type: bookingData.seatingArea || 'Bàn tiêu chuẩn',
+            notes: bookingData.specialRequest || '',
+            status: 'pending',
+          });
+        error = retryRes.error;
+      }
 
       if (error) {
         console.warn('⚠️ Lưu Supabase thất bại:', error.message);

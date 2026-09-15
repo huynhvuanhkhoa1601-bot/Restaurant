@@ -392,21 +392,54 @@ export const CartProvider = ({ children }) => {
       driver: isDineIn ? null : driverInfo
     };
 
-    // 1. Lưu lên Supabase
+    // 1. Lưu lên Supabase (với cơ chế tự tương thích schema)
     try {
-      const { error: orderError } = await supabase
+      const orderPayloadFull = {
+        id: orderId,
+        user_id: authUser?.id || null,
+        customer_name: orderData.name || orderData.fullName || 'Khách hàng',
+        customer_phone: orderData.phone || '0901234567',
+        customer_address: finalAddress || 'Toà nhà Landmark 81, 720A Điện Biên Phủ, P.22, Bình Thạnh, TP.HCM',
+        payment_method: orderData.paymentMethod || 'cod',
+        notes: isDineIn 
+          ? `[DÙNG TẠI BÀN: ${selectedTable?.name || ''}] ${orderData.note || orderData.notes || ''}`.trim()
+          : (orderData.note || orderData.notes || ''),
+        delivery_type: isDineIn ? 'dine_in' : (orderData.deliveryType || 'now'),
+        scheduled_time: orderData.deliveryType === 'scheduled' ? (orderData.scheduledTime || null) : null,
+        subtotal: cartSubtotal,
+        delivery_fee: deliveryFee,
+        discount: voucherDiscount,
+        tax,
+        total: cartTotal,
+        voucher_code: appliedVoucher?.code || null,
+        status: 'confirmed',
+        estimated_time: isDineIn 
+          ? '10-15 phút' 
+          : (orderData.deliveryType === 'scheduled' && orderData.scheduledTime 
+              ? `Hẹn giao: ${orderData.scheduledTime}` 
+              : '20-25 phút'),
+        driver: isDineIn ? null : driverInfo,
+        order_type: diningMode,
+        table_number: selectedTable?.name || null,
+        table_area: selectedTable?.area || null,
+        created_at: now,
+      };
+
+      let { error: orderError } = await supabase
         .from('orders')
-        .insert({
+        .insert(orderPayloadFull);
+
+      // Nếu Supabase chưa có cột order_type / table_number / driver, tự động loại bỏ cột mở rộng và lưu lại
+      if (orderError && orderError.message?.includes('Could not find')) {
+        console.warn('⚠️ Supabase đang dùng schema cơ bản, tự động tương thích...');
+        const orderPayloadBasic = {
           id: orderId,
           user_id: authUser?.id || null,
-          customer_name: orderData.name || orderData.fullName || '',
-          customer_phone: orderData.phone || '',
-          customer_email: orderData.email || authUser?.email || '',
-          customer_address: finalAddress,
+          customer_name: orderData.name || orderData.fullName || 'Khách hàng',
+          customer_phone: orderData.phone || '0901234567',
+          customer_address: finalAddress || 'Toà nhà Landmark 81, 720A Điện Biên Phủ, P.22, Bình Thạnh, TP.HCM',
           payment_method: orderData.paymentMethod || 'cod',
-          notes: orderData.note || orderData.notes || '',
-          delivery_type: isDineIn ? 'dine_in' : (orderData.deliveryType || 'now'),
-          scheduled_time: orderData.deliveryType === 'scheduled' ? (orderData.scheduledTime || null) : null,
+          notes: isDineIn ? `[DÙNG TẠI BÀN ${selectedTable?.name} - ${selectedTable?.area}] ${orderData.note || ''}`.trim() : (orderData.note || ''),
           subtotal: cartSubtotal,
           delivery_fee: deliveryFee,
           discount: voucherDiscount,
@@ -414,26 +447,23 @@ export const CartProvider = ({ children }) => {
           total: cartTotal,
           voucher_code: appliedVoucher?.code || null,
           status: 'confirmed',
-          estimated_time: isDineIn 
-            ? '10-15 phút' 
-            : (orderData.deliveryType === 'scheduled' && orderData.scheduledTime 
-                ? `Hẹn giao: ${orderData.scheduledTime}` 
-                : '20-25 phút'),
-          driver: isDineIn ? null : driverInfo,
-          order_type: diningMode,
-          table_number: selectedTable?.name || null,
+          estimated_time: isDineIn ? '10-15 phút' : '20-25 phút',
           created_at: now,
-        });
+        };
+
+        const retryRes = await supabase.from('orders').insert(orderPayloadBasic);
+        orderError = retryRes.error;
+      }
 
       if (!orderError) {
         // Lưu chi tiết từng món lên Supabase
         const itemsToInsert = cart.map(item => ({
           order_id: orderId,
-          food_id: item.id || '',
-          food_name: item.name || '',
+          food_id: String(item.id || ''),
+          food_name: item.name || 'Món ăn',
           quantity: item.quantity || 1,
           unit_price: item.unitPrice || item.price || 0,
-          total_price: item.totalPrice || (item.unitPrice * item.quantity) || 0,
+          total_price: item.totalPrice || ((item.unitPrice || item.price || 0) * (item.quantity || 1)),
           selected_size: item.selectedSize?.name || '',
           selected_toppings: item.selectedToppings || [],
         }));
@@ -443,7 +473,9 @@ export const CartProvider = ({ children }) => {
           .insert(itemsToInsert);
 
         if (!itemsError) {
-          console.log('✅ Đơn hàng đã lưu lên Supabase thành công!');
+          console.log('✅ Đơn hàng & món ăn đã lưu lên Supabase thành công!');
+        } else {
+          console.warn('⚠️ Lỗi lưu chi tiết món lên Supabase:', itemsError.message);
         }
       } else {
         console.warn('⚠️ Lỗi lưu đơn hàng lên Supabase:', orderError.message);

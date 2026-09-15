@@ -1,0 +1,47 @@
+{
+  "short_name": "KenRestaurant",
+  "name": "KenRestaurant - ?m Th?c Thu?ng H?ng Landmark 81",
+  "description": "Ð?t bàn, g?i món t?i bàn quét mã QR, giao d? an siêu t?c t?i Toà nhà Landmark 81, TP.HCM.",
+  "icons": [
+    {
+      "src": "/images/logo.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/images/logo.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#0B0F19",
+  "theme_color": "#f97316",
+  "display": "standalone",
+  "orientation": "portrait",
+  "scope": "/",
+  "lang": "vi",
+  "categories": ["food", "lifestyle", "shopping"],
+  "shortcuts": [
+    {
+      "name": "Th?c don",
+      "short_name": "Menu",
+      "description": "Xem danh sách món an thu?ng h?ng",
+      "url": "/?tab=menu"
+    },
+    {
+      "name": "Quét bàn QR",
+      "short_name": "Quét bàn",
+      "description": "Quét mã QR t?i bàn d? g?i món",
+      "url": "/?tab=qr"
+    },
+    {
+      "name": "Ð?t bàn ti?c",
+      "short_name": "Ð?t bàn",
+      "description": "Ð?t bàn tru?c t?i Landmark 81",
+      "url": "/?tab=reservation"
+    }
+  ]
+}
