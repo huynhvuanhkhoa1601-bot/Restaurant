@@ -179,6 +179,7 @@ export const AuthProvider = ({ children }) => {
               role: assignedRole,
               avatar: userWithRole.avatar || null,
               verified: true,
+              last_login_at: new Date().toISOString(),
             }, { onConflict: 'email', ignoreDuplicates: false });
           console.log('✅ Đồng bộ user lên Supabase khi đăng nhập thành công (Role:', assignedRole, ')');
         } catch (supErr) {

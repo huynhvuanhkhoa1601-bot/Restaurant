@@ -9,19 +9,23 @@ import {
   CheckCircle2, 
   MapPin, 
   Phone, 
+  Mail,
   User 
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
+import { useAuth } from '../context/AuthContext';
 import { reservationsAPI } from '../services/api';
 import { supabase } from '../lib/supabase';
 
 const TableReservationModal = () => {
   const { isReservationOpen, closeReservation, showToast } = useCart();
+  const { currentUser } = useAuth();
   const [isSuccess, setIsSuccess] = useState(false);
 
   const [bookingData, setBookingData] = useState({
-    name: '',
-    phone: '',
+    name: currentUser?.name || '',
+    phone: currentUser?.phone || '',
+    email: currentUser?.email || '',
     date: '',
     time: '',
     guests: 2,
@@ -39,7 +43,9 @@ const TableReservationModal = () => {
       const { error } = await supabase
         .from('reservations')
         .insert({
+          user_id: currentUser?.id || null,
           customer_name: bookingData.name,
+          email: bookingData.email || currentUser?.email || '',
           phone: bookingData.phone,
           guests: Number(bookingData.guests),
           date: bookingData.date,
@@ -151,6 +157,7 @@ const TableReservationModal = () => {
                     required
                     value={bookingData.name}
                     onChange={(e) => setBookingData({ ...bookingData, name: e.target.value })}
+                    placeholder="Nhập họ và tên"
                     className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-2.5 outline-none focus:border-orange-500 text-gray-900 dark:text-white font-semibold"
                   />
                 </div>
@@ -164,9 +171,25 @@ const TableReservationModal = () => {
                     required
                     value={bookingData.phone}
                     onChange={(e) => setBookingData({ ...bookingData, phone: e.target.value })}
+                    placeholder="VD: 0912345678"
                     className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-2.5 outline-none focus:border-orange-500 text-gray-900 dark:text-white font-semibold"
                   />
                 </div>
+              </div>
+
+              {/* Email row */}
+              <div>
+                <label className="font-bold text-gray-600 dark:text-gray-300 block mb-1 flex items-center gap-1">
+                  <Mail className="w-3.5 h-3.5 text-orange-500" />
+                  Email (nhận xác nhận đặt bàn)
+                </label>
+                <input
+                  type="email"
+                  value={bookingData.email}
+                  onChange={(e) => setBookingData({ ...bookingData, email: e.target.value })}
+                  placeholder="VD: email@gmail.com"
+                  className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-2.5 outline-none focus:border-orange-500 text-gray-900 dark:text-white"
+                />
               </div>
 
               <div className="grid grid-cols-3 gap-3">

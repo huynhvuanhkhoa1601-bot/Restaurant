@@ -18,6 +18,8 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
+import { useAuth } from '../context/AuthContext';
+import { supabase } from '../lib/supabase';
 import { restaurantTables, getTableOrderUrl, getTableQrImageUrl } from '../data/tables';
 
 const TableQRModal = () => {
@@ -30,6 +32,8 @@ const TableQRModal = () => {
     showToast,
     playSound
   } = useCart();
+
+  const { currentUser } = useAuth();
 
   const [activeTab, setActiveTab] = useState('scan'); // 'scan' | 'layout' | 'print'
   const [cameraActive, setCameraActive] = useState(false);
@@ -103,6 +107,26 @@ const TableQRModal = () => {
     setCameraActive(false);
   };
 
+  // Ghi phiên ngồi bàn lên Supabase
+  const logTableSession = async (table, sessionType) => {
+    try {
+      await supabase.from('table_sessions').insert({
+        user_id: currentUser?.id || null,
+        customer_name: currentUser?.name || null,
+        customer_phone: currentUser?.phone || null,
+        table_code: table.code,
+        table_name: table.name,
+        table_area: table.area || null,
+        table_floor: table.floor || null,
+        session_type: sessionType,
+        created_at: new Date().toISOString(),
+      });
+      console.log(`✅ Đã ghi table_session: ${table.name} (${sessionType})`);
+    } catch (err) {
+      console.warn('⚠️ Không thể lưu table_session lên Supabase:', err?.message);
+    }
+  };
+
   // Giải mã chuỗi URL hoặc mã bàn
   const handleDetectUrl = (rawText) => {
     if (!rawText) return;
@@ -128,19 +152,21 @@ const TableQRModal = () => {
     }
 
     if (foundTable) {
-      handleSelectTable(foundTable);
+      handleSelectTable(foundTable, 'scan');
     } else {
       showToast(`Mã quét: "${rawText.substring(0, 30)}..." không khớp bàn nào. Vui lòng thử lại!`, 'info');
     }
   };
 
-  const handleSelectTable = (table) => {
+  const handleSelectTable = (table, sessionType = 'layout_click') => {
     setSelectedTable(table);
     setDiningMode('dine_in');
     stopCamera();
     closeTableQR();
     playSound('success');
     showToast(`Đã kết nối với ${table.name} (${table.area})! Phí ship đã chuyển thành 0đ.`, 'success');
+    // Ghi phiên ngồi bàn lên Supabase
+    logTableSession(table, sessionType);
   };
 
   const handleManualCodeInput = (e) => {
@@ -150,7 +176,7 @@ const TableQRModal = () => {
       t => t.code === code || t.code === `B${code}` || t.name.toUpperCase().includes(code)
     );
     if (found) {
-      handleSelectTable(found);
+      handleSelectTable(found, 'manual');
     } else {
       showToast(`Không tìm thấy bàn với mã "${code}". Hãy thử B01 đến B10!`, 'warning');
     }

@@ -3,6 +3,7 @@ import { foods as initialFoods, vouchers as initialVouchers } from '../data/food
 import { restaurantTables } from '../data/tables';
 import { ordersAPI, foodsAPI, vouchersAPI } from '../services/api';
 import { supabase } from '../lib/supabase';
+import { useAuth } from './AuthContext';
 
 const CartContext = createContext();
 
@@ -15,6 +16,7 @@ export const useCart = () => {
 };
 
 export const CartProvider = ({ children }) => {
+  const { currentUser: authUser } = useAuth();
   // Dark mode state with localStorage persistence
   const [darkMode, setDarkMode] = useState(() => {
     const saved = localStorage.getItem('gourmet_theme');
@@ -148,6 +150,20 @@ export const CartProvider = ({ children }) => {
           setTimeout(() => {
             showToast(`🎉 Chào mừng quý khách tại ${found.name} (${found.area})! Phí phục vụ tại bàn 0đ.`, 'success');
           }, 600);
+          // Log phiên quét mã QR qua URL param lên Supabase
+          supabase.from('table_sessions').insert({
+            user_id: null,
+            customer_name: null,
+            customer_phone: null,
+            table_code: found.code,
+            table_name: found.name,
+            table_area: found.area || null,
+            table_floor: found.floor || null,
+            session_type: 'url_param',
+            created_at: new Date().toISOString(),
+          }).then(() => {
+            console.log(`✅ Logged table_session (url_param): ${found.name}`);
+          }).catch(() => {});
         }
       }
     } catch (_) {}
@@ -382,11 +398,15 @@ export const CartProvider = ({ children }) => {
         .from('orders')
         .insert({
           id: orderId,
+          user_id: authUser?.id || null,
           customer_name: orderData.name || orderData.fullName || '',
           customer_phone: orderData.phone || '',
+          customer_email: orderData.email || authUser?.email || '',
           customer_address: finalAddress,
           payment_method: orderData.paymentMethod || 'cod',
           notes: orderData.note || orderData.notes || '',
+          delivery_type: isDineIn ? 'dine_in' : (orderData.deliveryType || 'now'),
+          scheduled_time: orderData.deliveryType === 'scheduled' ? (orderData.scheduledTime || null) : null,
           subtotal: cartSubtotal,
           delivery_fee: deliveryFee,
           discount: voucherDiscount,

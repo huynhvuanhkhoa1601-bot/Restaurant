@@ -279,10 +279,14 @@ const Reviews = () => {
       const { error } = await supabase
         .from('reviews')
         .insert({
+          user_id: currentUser?.id || null,
           user_name: created.name,
+          user_email: currentUser?.email || null,
+          user_phone: currentUser?.phone || null,
           user_avatar: created.avatar,
           rating: created.rating,
           comment: created.comment,
+          food_id: foods.find(f => f.name === created.dish)?.id || null,
           food_name: created.dish,
         });
 
